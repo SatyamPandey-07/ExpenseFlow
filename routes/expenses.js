@@ -1,5 +1,6 @@
 const express = require('express');
-const Expense = require('../models/Expense');
+const Joi = require('joi');
+const Transaction = require('../models/Transaction');
 const budgetService = require('../services/budgetService');
 const categorizationService = require('../services/categorizationService');
 const exportService = require('../services/exportService');
@@ -66,7 +67,7 @@ router.get('/', auth, validateQuery(ExpenseSchemas.filter), asyncHandler(async (
   return ResponseFactory.paginated(res, convertedExpenses, page, limit, total);
 }));
 
-// POST new expense for authenticated user
+// POST new expense (Transaction)
 router.post('/', auth, expenseLimiter, validateRequest(ExpenseSchemas.create), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -139,11 +140,11 @@ router.post('/', auth, expenseLimiter, validateRequest(ExpenseSchemas.create), a
     // Emit real-time update to all user's connected devices
     const io = req.app.get('io');
 
-    const expense = await expenseService.createExpense(value, req.user._id, io);
+    // Create transaction
+    const transaction = await transactionService.createTransaction(req.body, req.user._id, io);
 
-    // Add display fields for backwards compatibility with UI
     const user = await User.findById(req.user._id);
-    const response = expense.toObject();
+    const response = transaction.toObject();
 
     if (response.originalCurrency !== user.preferredCurrency && response.convertedAmount) {
       response.displayAmount = response.convertedAmount;
@@ -159,233 +160,59 @@ router.post('/', auth, expenseLimiter, validateRequest(ExpenseSchemas.create), a
   }
 });
 
-// PUT update expense for authenticated user
+// PUT update expense
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { error, value } = expenseSchema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    const transaction = await Transaction.findOne({ _id: req.params.id, user: req.user._id });
+    if (!transaction) return res.status(404).json({ error: 'Expense not found' });
 
-    const user = await User.findById(req.user._id);
-    const expenseCurrency = value.currency || user.preferredCurrency;
-
-    // Validate currency
-    if (!currencyService.isValidCurrency(expenseCurrency)) {
-      return res.status(400).json({ error: 'Invalid currency code' });
+    if (req.body.amount && req.body.type === 'expense') {
+      const oldAmount = transaction.convertedAmount || transaction.amount;
+      await budgetService.updateGoalProgress(req.user._id, oldAmount, transaction.category);
     }
 
-    // Prepare update data
-    const updateData = {
-      ...value,
-      originalAmount: value.amount,
-      originalCurrency: expenseCurrency,
-      amount: value.amount
-    };
+    Object.assign(transaction, req.body);
 
-    // If expense currency differs from user preference, add conversion info
-    if (expenseCurrency !== user.preferredCurrency) {
-      try {
-        const conversion = await currencyService.convertCurrency(
-          value.amount,
-          expenseCurrency,
-          user.preferredCurrency
-        );
-        updateData.convertedAmount = conversion.convertedAmount;
-        updateData.convertedCurrency = user.preferredCurrency;
-        updateData.exchangeRate = conversion.exchangeRate;
-      } catch (conversionError) {
-        console.error('Currency conversion failed:', conversionError.message);
+    if (req.body.amount || req.body.currency) {
+      const user = await User.findById(req.user._id);
+      const currency = req.body.currency || transaction.originalCurrency || 'INR';
+      if (currency !== user.preferredCurrency) {
+        const conversion = await currencyService.convertCurrency(req.body.amount || transaction.amount, currency, user.preferredCurrency);
+        transaction.convertedAmount = conversion.convertedAmount;
+        transaction.convertedCurrency = user.preferredCurrency;
+        transaction.exchangeRate = conversion.exchangeRate;
       }
+      transaction.originalAmount = req.body.amount || transaction.amount;
+      transaction.originalCurrency = currency;
     }
 
-    const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      updateData,
-      { new: true }
-    );
-    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    await transaction.save();
 
-    // Update budget calculations
-    await budgetService.checkBudgetAlerts(req.user._id);
-
-    // Emit real-time update
-    const io = req.app.get('io');
-
-    // Prepare the expense object with display amounts for socket emission
-    const expenseForSocket = expense.toObject();
-    if (expenseCurrency !== user.preferredCurrency) {
-      expenseForSocket.displayAmount = updateData.convertedAmount || expense.amount;
-      expenseForSocket.displayCurrency = user.preferredCurrency;
-    } else {
-      expenseForSocket.displayAmount = expense.amount;
-      expenseForSocket.displayCurrency = expenseCurrency;
+    if (req.body.amount && req.body.type === 'expense') {
+      const newAmount = transaction.convertedAmount || transaction.amount;
+      await budgetService.updateGoalProgress(req.user._id, -newAmount, transaction.category);
     }
 
-    io.to(`user_${req.user._id}`).emit('expense_updated', expenseForSocket);
-
-    const response = expense.toObject();
-
-    // Add display amounts to response
-    if (expenseCurrency !== user.preferredCurrency) {
-      response.displayAmount = updateData.convertedAmount || expense.amount;
-      response.displayCurrency = user.preferredCurrency;
-    } else {
-      response.displayAmount = expense.amount;
-      response.displayCurrency = expenseCurrency;
-    }
-
-    res.json(response);
+    res.json(transaction);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE expense for authenticated user
+// DELETE expense
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const expense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    const transaction = await Transaction.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!transaction) return res.status(404).json({ error: 'Expense not found' });
 
-    // Update budget calculations
-    await budgetService.checkBudgetAlerts(req.user._id);
-
-    // Emit real-time update
-    const io = req.app.get('io');
-    io.to(`user_${req.user._id}`).emit('expense_deleted', { id: req.params.id });
+    if (transaction.type === 'expense') {
+      const amount = transaction.convertedAmount || transaction.amount;
+      await budgetService.updateGoalProgress(req.user._id, amount, transaction.category);
+    }
 
     res.json({ message: 'Expense deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-});
-
-// GET export expenses to CSV
-router.get('/export', auth, async (req, res) => {
-  try {
-    const { format, startDate, endDate, category } = req.query;
-
-    // Validate format
-    if (format && format !== 'csv') {
-      return res.status(400).json({ error: 'Only CSV format is supported' });
-    }
-
-    // Get expenses using export service
-    const expenses = await exportService.getExpensesForExport(req.user._id, {
-      startDate,
-      endDate,
-      category,
-      type: 'all' // Include both income and expenses
-    });
-
-    if (expenses.length === 0) {
-      return res.status(404).json({ error: 'No expenses found for the selected filters' });
-    }
-
-    // Generate CSV using ExportService
-    const csv = exportService.generateCSV(expenses);
-
-    // Set CSV headers
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="expenses.csv"');
-
-    res.send(csv);
-  } catch (error) {
-    console.error('Export error:', error);
-    res.status(500).json({ error: 'Failed to export expenses' });
-  }
-});
-
-// POST auto-categorize all uncategorized expenses
-router.post('/auto-categorize', auth, async (req, res) => {
-  try {
-    const { workspaceId, applyHighConfidence = true } = req.body;
-
-    // Use the workspace from body or query
-    const wsId = workspaceId || req.query.workspaceId;
-
-    const results = await categorizationService.autoCategorizeUncategorized(
-      req.user._id,
-      wsId
-    );
-
-    // Emit real-time updates for categorized expenses
-    if (results.categorized > 0 || results.suggested > 0) {
-      const io = req.app.get('io');
-      io.to(`user_${req.user._id}`).emit('expenses_recategorized', {
-        categorized: results.categorized,
-        suggested: results.suggested,
-        total: results.total
-      });
-    }
-
-    res.json({
-      success: true,
-      message: `Processed ${results.total} expenses: ${results.categorized} auto-categorized, ${results.suggested} suggestions available`,
-      data: results
-    });
-  } catch (error) {
-    console.error('Auto-categorize error:', error);
-    res.status(500).json({ error: 'Failed to auto-categorize expenses' });
-  }
-});
-
-// PUT apply category suggestion to an expense
-router.put('/:id/apply-suggestion', auth, async (req, res) => {
-  try {
-    const { category, isCorrection, originalSuggestion } = req.body;
-
-    if (!category) {
-      return res.status(400).json({ error: 'Category is required' });
-    }
-
-    const validCategories = ['food', 'transport', 'entertainment', 'utilities', 'healthcare', 'shopping', 'other'];
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({ error: 'Invalid category' });
-    }
-
-    const result = await categorizationService.applySuggestion(
-      req.user._id,
-      req.params.id,
-      category,
-      isCorrection || false,
-      originalSuggestion
-    );
-
-    // Emit real-time update
-    const io = req.app.get('io');
-    io.to(`user_${req.user._id}`).emit('expense_updated', {
-      id: req.params.id,
-      category: category
-    });
-
-    res.json({
-      success: true,
-      message: 'Category applied successfully',
-      data: result
-    });
-  } catch (error) {
-    console.error('Apply suggestion error:', error);
-    res.status(500).json({ error: error.message || 'Failed to apply suggestion' });
-  }
-});
-
-// GET category suggestions for a description (convenience endpoint)
-router.get('/suggest-category', auth, async (req, res) => {
-  try {
-    const { description } = req.query;
-
-    if (!description || description.trim().length < 2) {
-      return res.status(400).json({ error: 'Description must be at least 2 characters' });
-    }
-
-    const suggestions = await categorizationService.suggestCategory(req.user._id, description);
-
-    res.json({
-      success: true,
-      data: suggestions
-    });
-  } catch (error) {
-    console.error('Suggest category error:', error);
-    res.status(500).json({ error: 'Failed to get category suggestions' });
   }
 });
 

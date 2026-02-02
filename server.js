@@ -240,11 +240,25 @@ console.log('Collaboration handler initialized');
 // Routes
 app.use('/api/auth', require('./middleware/rateLimiter').authLimiter, authRoutes);
 app.use('/api/currency', require('./routes/currency'));
-app.use('/api/groups', require('./routes/groups'));
-app.use('/api/splits', require('./routes/splits'));
-app.use('/api/workspaces', require('./routes/workspaces'));
-app.use('/api/tax', require('./routes/tax'));
-
+app.use('/api/user', protect, require('./routes/user'));
+app.use('/api/expenses', require('./middleware/rateLimiter').expenseLimiter, protect, expenseRoutes);
+app.use('/api/transactions', require('./middleware/rateLimiter').expenseLimiter, protect, require('./routes/transactions'));
+app.use('/api/sync', protect, syncRoutes);
+app.use('/api/rules', protect, require('./routes/rules'));
+app.use('/api/notifications', protect, require('./routes/notifications'));
+app.use('/api/receipts', require('./middleware/rateLimiter').uploadLimiter, protect, require('./routes/receipts'));
+app.use('/api/budgets', protect, require('./routes/budgets'));
+app.use('/api/goals', protect, require('./routes/goals'));
+app.use('/api/analytics', protect, require('./routes/analytics'));
+app.use('/api/groups', protect, require('./routes/groups'));
+app.use('/api/splits', protect, require('./routes/splits'));
+app.use('/api/workspaces', protect, require('./routes/workspaces'));
+app.use('/api/tax', protect, require('./routes/tax'));
+app.use('/api/bills', protect, require('./routes/bills'));
+app.use('/api/calendar', protect, require('./routes/calendar'));
+app.use('/api/reminders', protect, require('./routes/reminders'));
+app.use('/api/audit', protect, require('./routes/audit'));
+app.use('/api/subscriptions', protect, require('./routes/subscriptions'));
 app.use('/api/accounts', require('./routes/accounts'));
 
 // Import error handling middleware
