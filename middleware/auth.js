@@ -186,6 +186,7 @@ const optionalAuth = async (req, res, next) => {
 
 module.exports = auth;
 module.exports.auth = auth;
+module.exports.authenticateToken = auth;
 module.exports.require2FA = require2FA
 module.exports.verify2FAToken = verify2FAToken;
 module.exports.optionalAuth = optionalAuth;

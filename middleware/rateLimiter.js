@@ -1,6 +1,4 @@
 const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const redis = require('redis');
 
 /**
  * Enhanced Rate Limiting Middleware
@@ -12,7 +10,13 @@ const redis = require('redis');
 
 // Optional: Use Redis for distributed rate limiting
 let redisClient = null;
+let RedisStore = null;
+
 try {
+  // Try to load Redis modules only if they are installed
+  RedisStore = require('rate-limit-redis');
+  const redis = require('redis');
+  
   redisClient = redis.createClient({
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
@@ -23,8 +27,9 @@ try {
     redisClient = null;
   });
 } catch (error) {
-  console.warn('Redis client initialization failed, using in-memory store');
+  console.warn('Redis modules not installed, using in-memory store. To enable Redis, install: npm install redis rate-limit-redis');
   redisClient = null;
+  RedisStore = null;
 }
 
 /**
@@ -48,7 +53,7 @@ const createRateLimiter = (options) => {
   };
 
   // Use Redis store if available, otherwise use memory store
-  if (redisClient && options.useRedis !== false) {
+  if (redisClient && RedisStore && options.useRedis !== false) {
     config.store = new RedisStore({
       client: redisClient,
       prefix: options.prefix || 'rate-limit:'
@@ -438,6 +443,10 @@ module.exports = {
   userLoginLimiter,
   userExpenseLimiter,
   userPaymentLimiter,
+  
+  // Aliases for backward compatibility
+  authLimiter: loginLimiter,
+  uploadLimiter: fileUploadLimiter,
   
   // Utility
   createRateLimiter,

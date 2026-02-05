@@ -174,7 +174,9 @@ const ExpenseSchemas = {
   }).unknown(false),
 
   filter: Joi.object({
-    ...CommonSchemas.pagination,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(50),
+    sort: Joi.string().optional(),
     category: Joi.string().optional(),
     type: Joi.string().valid('income', 'expense').optional(),
     startDate: CommonSchemas.date.optional(),
@@ -312,7 +314,9 @@ const InvoiceSchemas = {
 const PaymentSchemas = {
   create: InvoiceSchemas.payment,
   filter: Joi.object({
-    ...CommonSchemas.pagination,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(50),
+    sort: Joi.string().optional(),
     status: Joi.string().valid('pending', 'completed', 'failed', 'cancelled').optional(),
     paymentMethod: Joi.string().optional(),
     minAmount: Joi.number().min(0).optional(),
@@ -373,7 +377,9 @@ const ReportSchemas = {
   }).unknown(false),
 
   filter: Joi.object({
-    ...CommonSchemas.pagination,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(50),
+    sort: Joi.string().optional(),
     startDate: CommonSchemas.date.optional(),
     endDate: CommonSchemas.date.optional(),
     category: Joi.string().optional()
