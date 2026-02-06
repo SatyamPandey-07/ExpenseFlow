@@ -9339,3 +9339,84 @@ input:checked + .toggle-slider::before {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================
+   TAG INTELLIGENCE STYLES
+   Issue #553: Transaction Tagging & Smart Category
+   ============================================ */
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.category-pill {
+  padding: 2px 8px;
+  background: rgba(100, 255, 218, 0.1);
+  color: var(--accent-primary);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.usage-badge {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-right: 12px;
+}
+
+.rule-info strong {
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.arrow {
+  margin: 0 12px;
+  opacity: 0.3;
+}
+
+.match-count {
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 12px;
+}
+
+.search-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 16px;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.suggestion-item:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 15px rgba(100, 255, 218, 0.1);
+}
+
+.confidence-high { color: #34d399; font-weight: 600; }
+.confidence-mid { color: #fbbf24; }
+.confidence-low { color: #f87171; }
+
+.tag-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 150px;
+}

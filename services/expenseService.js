@@ -6,15 +6,28 @@ const currencyService = require('./currencyService');
 const budgetService = require('./budgetService');
 const approvalService = require('./approvalService');
 const intelligenceService = require('./intelligenceService');
-const mongoose = require('mongoose');
+const categorizationEngine = require('./categorizationEngine');
+const merchantLearningService = require('./merchantLearningService');
 
 // Wrapper for backward compatibility
 class ExpenseService {
     async createExpense(rawData, userId, io) {
         const user = await userRepository.findById(userId);
 
-        // 1. Process rules (Triggers & Actions)
-        const { modifiedData, appliedRules } = await ruleEngine.processTransaction(rawData, userId);
+        // 1. Process rules (Triggers & Actions) - Legacy Rule Engine
+        let { modifiedData, appliedRules } = await ruleEngine.processTransaction(rawData, userId);
+
+        // 2. Smart Categorization Engine (Intelligence Layer)
+        await categorizationEngine.applyToTransaction({
+            user: userId,
+            merchant: modifiedData.merchant || '',
+            description: modifiedData.description || '',
+            amount: modifiedData.amount,
+            get category() { return modifiedData.category; },
+            set category(val) { modifiedData.category = val; },
+            get tags() { return modifiedData.tags; },
+            set tags(val) { modifiedData.tags = val; }
+        });
 
         // 2. Prepare final data
         const expenseCurrency = modifiedData.currency || user.preferredCurrency;

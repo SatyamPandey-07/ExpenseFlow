@@ -103,6 +103,13 @@ router.put('/:id', auth, validateRequest(ExpenseSchemas.create), asyncHandler(as
 
   if (!expense) throw new NotFoundError('Expense not found');
 
+  // Issue #553: Trigger adaptive learning on manual correction
+  if (req.body.category && expense.merchant) {
+    const merchantLearningService = require('../services/merchantLearningService');
+    merchantLearningService.learnFromCorrection(req.user._id, expense.merchant, req.body.category)
+      .catch(err => console.error('[MerchantLearning] Error:', err));
+  }
+
   return ResponseFactory.success(res, expense, 'Expense updated successfully');
 }));
 

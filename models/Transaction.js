@@ -94,6 +94,10 @@ const transactionSchema = new mongoose.Schema({
     appliedRules: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Rule'
+    }],
+    tags: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tag'
     }]
 }, {
     timestamps: true

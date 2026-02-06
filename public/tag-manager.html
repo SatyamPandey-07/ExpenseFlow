@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Tag Manager | ExpenseFlow Intelligence</title>
+    <link rel="stylesheet" href="/expensetracker.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .tag-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tag-row:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .rule-card {
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .confidence-low {
+            color: #f87171;
+        }
+
+        .confidence-mid {
+            color: #fbbf24;
+        }
+
+        .confidence-high {
+            color: #34d399;
+        }
+    </style>
+</head>
+
+<body class="dark-theme">
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>🏷️ Smart Tag Intelligence</h1>
+                <p class="subtitle">Organize transactions with automated categories and custom tagging</p>
+            </div>
+            <div class="header-actions">
+                <button id="add-tag-btn" class="btn-primary">+ Create Tag</button>
+                <button id="add-rule-btn" class="btn-secondary">+ New Rule</button>
+                <a href="/" class="btn-secondary">← Back</a>
+            </div>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="glass-card metric-card">
+                <h3>Total Tags</h3>
+                <div class="metric-value" id="total-tags-count">0</div>
+            </div>
+            <div class="glass-card metric-card">
+                <h3>Automated Rules</h3>
+                <div class="metric-value" id="total-rules-count">0</div>
+            </div>
+            <div class="glass-card metric-card">
+                <h3>Auto-Applied Today</h3>
+                <div class="metric-value" id="auto-applied-count">0</div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2>🏷️ Custom Tags</h2>
+                    <div class="actions">
+                        <button class="btn-text" id="merge-tags-btn">🔗 Merge</button>
+                    </div>
+                </div>
+                <div id="tags-list" class="tags-list scrollable" style="max-height: 500px;">
+                    <div class="placeholder">Loading tags...</div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2>🤖 Suggestion Engine</h2>
+                </div>
+                <div id="suggestions-list" class="suggestions-list">
+                    <div class="placeholder">Analyzing transaction patterns...</div>
+                </div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">
+                    <h2>⚙️ Categorization Rules</h2>
+                    <div class="actions">
+                        <input type="text" id="rule-search" placeholder="Search rules..." class="search-input">
+                    </div>
+                </div>
+                <div id="rules-list" class="rules-list">
+                    <div class="placeholder">No rules defined yet. Click "New Rule" to begin.</div>
+                </div>
+            </div>
+
+            <div class="glass-card full-width chart-card">
+                <h2>📊 Tag Usage Distribution</h2>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="tag-usage-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="tag-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tag-modal-title">Create New Tag</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <form id="tag-form">
+                <div class="form-group">
+                    <label>Tag Name</label>
+                    <input type="text" id="tag-name" required placeholder="e.g. Subscriptions">
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="tag-color" value="#64ffda">
+                </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <select id="tag-icon">
+                        <option value="tag">🏷️ Tag</option>
+                        <option value="shopping">🛍️ Shopping</option>
+                        <option value="food">🍴 Food</option>
+                        <option value="transport">🚗 Transport</option>
+                        <option value="entertainment">🎮 Entertainment</option>
+                        <option value="utilities">💡 Utilities</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary full-width">Save Tag</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/tag-controller.js"></script>
+</body>
+
+</html>
