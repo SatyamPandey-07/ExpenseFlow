@@ -251,6 +251,7 @@ app.use('/api/workspaces', require('./routes/workspaces'));
 app.use('/api/tax', require('./routes/tax'));
 app.use('/api/backups', backupRoutes); // Issue #462: Backup Management API
 app.use('/api/accounts', require('./routes/accounts'));
+app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/2fa', require('./middleware/auth'), twoFactorAuthRoutes); // Issue #503: 2FA Management
 app.use('/api/receipts', require('./routes/receipts'));
 app.use('/api/folders', require('./routes/folders'));
