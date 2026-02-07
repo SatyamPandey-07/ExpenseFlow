@@ -13,7 +13,7 @@ class TransactionsManager {
         this.sortField = 'date';
         this.sortDirection = 'desc';
         this.editingTransaction = null;
-        
+
         this.init();
     }
 
@@ -54,13 +54,13 @@ class TransactionsManager {
         for (let i = 0; i < 50; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - Math.floor(Math.random() * 90));
-            
+
             const isIncome = Math.random() < 0.2;
             const type = isIncome ? 'income' : 'expense';
             const categoryKeys = Object.keys(categories);
             const category = isIncome ? 'salary' : categoryKeys[Math.floor(Math.random() * (categoryKeys.length - 1))];
-            
-            const amount = isIncome 
+
+            const amount = isIncome
                 ? Math.floor(Math.random() * 50000) + 20000
                 : Math.floor(Math.random() * 5000) + 100;
 
@@ -81,34 +81,34 @@ class TransactionsManager {
     }
 
     async loadTransactions() {
-    try {
-        const response = await fetch('/api/expenses', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch('/api/expenses', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                // Token invalid or missing → logout
+                localStorage.clear();
+                window.location.replace('/login.html');
+                return;
             }
-        });
 
-        if (response.status === 401) {
-            // Token invalid or missing → logout
-            localStorage.clear();
-            window.location.replace('/login.html');
-            return;
+            if (!response.ok) {
+                throw new Error('API error');
+            }
+
+            this.transactions = await response.json();
+        } catch (error) {
+            console.error('Failed to load transactions:', error);
+            this.showNotification('Unable to load transactions', 'error');
         }
 
-        if (!response.ok) {
-            throw new Error('API error');
-        }
-
-        this.transactions = await response.json();
-    } catch (error) {
-        console.error('Failed to load transactions:', error);
-        this.showNotification('Unable to load transactions', 'error');
+        this.applyFilters();
+        this.hideLoading();
     }
-
-    this.applyFilters();
-    this.hideLoading();
-}
 
 
     hideLoading() {
@@ -142,6 +142,15 @@ class TransactionsManager {
                 this.closeBulkCategorizeModal();
             }
         });
+
+        // Auto-suggestions on description/merchant input
+        const intelligenceInputs = ['transactionDescription', 'transactionMerchant'];
+        intelligenceInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('blur', () => this.fetchPredictions());
+            }
+        });
     }
 
     setDefaultDate() {
@@ -155,12 +164,12 @@ class TransactionsManager {
         }
 
         const searchTerm = query.toLowerCase();
-        this.filteredTransactions = this.transactions.filter(transaction => 
+        this.filteredTransactions = this.transactions.filter(transaction =>
             transaction.description.toLowerCase().includes(searchTerm) ||
             transaction.merchant.toLowerCase().includes(searchTerm) ||
             transaction.category.toLowerCase().includes(searchTerm)
         );
-        
+
         this.currentPage = 1;
         this.renderTransactions();
         this.renderPagination();
@@ -309,6 +318,11 @@ class TransactionsManager {
                     <span class="type-badge ${transaction.type}">${transaction.type}</span>
                 </td>
                 <td>
+                    <div class="tags-container">
+                        ${(transaction.tags || []).map(t => `<span class="tag-pill" style="background: ${t.color || '#64ffda'}20; color: ${t.color || '#64ffda'}; border: 1px solid ${t.color || '#64ffda'}40;">${t.name || 'tag'}</span>`).join('')}
+                    </div>
+                </td>
+                <td>
                     <div class="action-buttons">
                         <button class="action-btn edit" onclick="transactionsManager.editTransaction('${transaction.id}')">
                             <i class="fas fa-edit"></i>
@@ -328,7 +342,7 @@ class TransactionsManager {
         const endIndex = Math.min(startIndex + this.itemsPerPage, this.filteredTransactions.length);
 
         // Update pagination info
-        document.getElementById('paginationInfo').textContent = 
+        document.getElementById('paginationInfo').textContent =
             `Showing ${startIndex + 1}-${endIndex} of ${this.filteredTransactions.length} transactions`;
 
         // Update page buttons
@@ -381,7 +395,7 @@ class TransactionsManager {
         } else {
             this.selectedTransactions.add(transactionId);
         }
-        
+
         this.updateBulkActions();
         this.renderTransactions();
     }
@@ -389,13 +403,13 @@ class TransactionsManager {
     toggleSelectAll() {
         const selectAllCheckbox = document.getElementById('selectAll');
         const pageTransactions = this.getPageTransactions();
-        
+
         if (selectAllCheckbox.checked) {
             pageTransactions.forEach(t => this.selectedTransactions.add(t.id));
         } else {
             pageTransactions.forEach(t => this.selectedTransactions.delete(t.id));
         }
-        
+
         this.updateBulkActions();
         this.renderTransactions();
     }
@@ -409,10 +423,10 @@ class TransactionsManager {
     updateBulkActions() {
         const bulkActions = document.getElementById('bulkActions');
         const selectedCount = this.selectedTransactions.size;
-        
+
         if (selectedCount > 0) {
             bulkActions.style.display = 'block';
-            bulkActions.querySelector('.selected-count').textContent = 
+            bulkActions.querySelector('.selected-count').textContent =
                 `${selectedCount} transaction${selectedCount > 1 ? 's' : ''} selected`;
         } else {
             bulkActions.style.display = 'none';
@@ -430,7 +444,7 @@ class TransactionsManager {
     getCategoryName(category) {
         const names = {
             food: 'Food & Dining', transport: 'Transportation', shopping: 'Shopping',
-            entertainment: 'Entertainment', utilities: 'Bills & Utilities', 
+            entertainment: 'Entertainment', utilities: 'Bills & Utilities',
             healthcare: 'Healthcare', salary: 'Salary', other: 'Other'
         };
         return names[category] || 'Other';
@@ -456,7 +470,7 @@ class TransactionsManager {
         document.getElementById('transactionCategory').value = transaction.category;
         document.getElementById('transactionDate').value = transaction.date;
         document.getElementById('transactionNotes').value = transaction.notes || '';
-        
+
         this.editingTransaction = transaction;
         document.getElementById('transactionModal').style.display = 'block';
     }
@@ -473,33 +487,71 @@ class TransactionsManager {
             description: document.getElementById('transactionDescription').value,
             category: document.getElementById('transactionCategory').value,
             date: document.getElementById('transactionDate').value,
+            merchant: document.getElementById('transactionMerchant').value,
+            tags: document.getElementById('transactionTags').value.split(',').map(t => t.trim()).filter(t => t),
             notes: document.getElementById('transactionNotes').value
         };
 
         try {
-            if (this.editingTransaction) {
-                // Update existing transaction
-                const index = this.transactions.findIndex(t => t.id === this.editingTransaction.id);
-                if (index !== -1) {
-                    this.transactions[index] = { ...this.editingTransaction, ...formData };
-                }
-                this.showNotification('Transaction updated successfully!', 'success');
-            } else {
-                // Add new transaction
-                const newTransaction = {
-                    id: `txn_${Date.now()}`,
-                    ...formData,
-                    merchant: 'Manual Entry',
-                    createdAt: new Date().toISOString()
-                };
-                this.transactions.unshift(newTransaction);
-                this.showNotification('Transaction added successfully!', 'success');
-            }
+            const response = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(formData)
+            });
 
-            this.applyFilters();
-            this.closeModal();
+            if (response.ok) {
+                this.showNotification('Transaction saved as draft!', 'success');
+                this.loadTransactions();
+                this.closeModal();
+            } else {
+                throw new Error('Failed to save');
+            }
         } catch (error) {
             this.showNotification('Error saving transaction', 'error');
+        }
+    }
+
+    async submitForApproval() {
+        // First save the transaction, then submit
+        const formData = {
+            type: document.getElementById('transactionType').value,
+            amount: parseFloat(document.getElementById('transactionAmount').value),
+            description: document.getElementById('transactionDescription').value,
+            category: document.getElementById('transactionCategory').value,
+            date: document.getElementById('transactionDate').value,
+            notes: document.getElementById('transactionNotes').value,
+            approvalStatus: 'pending'
+        };
+
+        try {
+            const saveRes = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await saveRes.json();
+            if (data.success) {
+                // Now trigger approval submission
+                const submitRes = await fetch(`/api/approvals/submit/${data.data._id}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+
+                if (submitRes.ok) {
+                    this.showNotification('Transaction submitted for approval!', 'success');
+                    this.loadTransactions();
+                    this.closeModal();
+                }
+            }
+        } catch (error) {
+            this.showNotification('Error during submission', 'error');
         }
     }
 
@@ -571,7 +623,7 @@ class TransactionsManager {
     // Bulk operations
     bulkDelete() {
         if (this.selectedTransactions.size === 0) return;
-        
+
         if (!confirm(`Are you sure you want to delete ${this.selectedTransactions.size} transactions?`)) return;
 
         this.transactions = this.transactions.filter(t => !this.selectedTransactions.has(t.id));
@@ -592,7 +644,7 @@ class TransactionsManager {
 
     applyBulkCategorize() {
         const newCategory = document.getElementById('bulkCategory').value;
-        
+
         this.transactions.forEach(transaction => {
             if (this.selectedTransactions.has(transaction.id)) {
                 transaction.category = newCategory;
@@ -608,7 +660,7 @@ class TransactionsManager {
 
     bulkExport() {
         if (this.selectedTransactions.size === 0) return;
-        
+
         const selectedData = this.transactions.filter(t => this.selectedTransactions.has(t.id));
         this.exportData(selectedData, 'selected_transactions.csv');
     }
@@ -645,8 +697,8 @@ class TransactionsManager {
             t.merchant,
             t.notes || ''
         ]);
-        
-        return [headers, ...rows].map(row => 
+
+        return [headers, ...rows].map(row =>
             row.map(field => `"${field}"`).join(',')
         ).join('\n');
     }
@@ -666,12 +718,40 @@ class TransactionsManager {
             z-index: 1001;
             animation: slideIn 0.3s ease;
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 3000);
+    }
+
+    async fetchPredictions() {
+        const description = document.getElementById('transactionDescription').value;
+        const merchant = document.getElementById('transactionMerchant').value;
+
+        if (!description && !merchant) return;
+
+        try {
+            const res = await fetch('/api/tags/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ description, merchant })
+            });
+            const data = await res.json();
+            if (data.success && data.data.confidence > 0.5) {
+                const categoryEl = document.getElementById('transactionCategory');
+                if (categoryEl && data.data.category !== 'other') {
+                    categoryEl.value = data.data.category;
+                    this.showNotification(`Intelligent Suggestion: Category set to ${data.data.category}`, 'info');
+                }
+            }
+        } catch (err) {
+            console.error('Prediction error:', err);
+        }
     }
 }
 

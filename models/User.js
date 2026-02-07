@@ -95,11 +95,16 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  role: {
+    type: String,
+    enum: ['submitter', 'approver', 'finance', 'admin'],
+    default: 'submitter'
+  },
 
   // ========================
   // Gamification & Health Score Fields (Issue #421)
   // ========================
-  
+
   // XP and Level System
   gamification: {
     totalPoints: {
@@ -201,7 +206,7 @@ const userSchema = new mongoose.Schema({
       min: 0
     }
   },
-  
+
   // ========================
   // Intelligence Preferences (Issue #470)
   // ========================
@@ -252,7 +257,7 @@ const userSchema = new mongoose.Schema({
 });
 // ...existing code...
 // Account lockout check method
-userSchema.methods.isLocked = function() {
+userSchema.methods.isLocked = function () {
   if (this.security && this.security.lockoutUntil) {
     return this.security.lockoutUntil > Date.now();
   }
@@ -260,7 +265,7 @@ userSchema.methods.isLocked = function() {
 };
 
 // Record login method for audit and lockout reset
-userSchema.methods.recordLogin = async function(ip) {
+userSchema.methods.recordLogin = async function (ip) {
   // Reset failed login attempts and lockout
   if (this.security) {
     this.security.failedLoginAttempts = 0;
@@ -271,14 +276,14 @@ userSchema.methods.recordLogin = async function(ip) {
   await this.save();
 };
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   this.security.passwordChangedAt = new Date();
   next();
 });
 
-userSchema.methods.comparePassword = async function(password) {
+userSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
@@ -305,7 +310,7 @@ const LEVEL_CONFIG = {
 /**
  * Add XP points and check for level up
  */
-userSchema.methods.addPoints = async function(points, reason = '') {
+userSchema.methods.addPoints = async function (points, reason = '') {
   this.gamification.totalPoints += points;
   this.gamification.currentLevelXp += points;
   this.gamification.lastActivityDate = new Date();
@@ -316,13 +321,13 @@ userSchema.methods.addPoints = async function(points, reason = '') {
     this.gamification.level = nextLevel;
     this.gamification.levelName = LEVEL_CONFIG[nextLevel].name;
     this.gamification.currentLevelXp = this.gamification.totalPoints - LEVEL_CONFIG[nextLevel].xpRequired;
-    
+
     // Calculate XP needed for next level
     const levelAfterNext = nextLevel + 1;
     if (LEVEL_CONFIG[levelAfterNext]) {
       this.gamification.xpToNextLevel = LEVEL_CONFIG[levelAfterNext].xpRequired - LEVEL_CONFIG[nextLevel].xpRequired;
     }
-    
+
     await this.save();
     return { leveledUp: true, newLevel: nextLevel, levelName: LEVEL_CONFIG[nextLevel].name };
   }
@@ -334,7 +339,7 @@ userSchema.methods.addPoints = async function(points, reason = '') {
 /**
  * Award a badge to user
  */
-userSchema.methods.awardBadge = async function(badge) {
+userSchema.methods.awardBadge = async function (badge) {
   // Check if already has badge
   const existingBadge = this.badges.find(b => b.badgeId === badge.badgeId);
   if (existingBadge) return { awarded: false, reason: 'Already earned' };
@@ -359,21 +364,21 @@ userSchema.methods.awardBadge = async function(badge) {
 /**
  * Update streak
  */
-userSchema.methods.updateStreak = async function() {
+userSchema.methods.updateStreak = async function () {
   const now = new Date();
   const lastActivity = this.gamification.lastActivityDate;
-  
+
   if (!lastActivity) {
     this.gamification.streakDays = 1;
   } else {
     const diffDays = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
       // Same day, no change
     } else if (diffDays === 1) {
       // Next day, increment streak
       this.gamification.streakDays += 1;
-      
+
       // Bonus XP for streaks
       if (this.gamification.streakDays % 7 === 0) {
         await this.addPoints(50, '7-day streak bonus');
@@ -392,7 +397,7 @@ userSchema.methods.updateStreak = async function() {
 /**
  * Get health score grade from numeric score
  */
-userSchema.methods.getHealthGrade = function(score) {
+userSchema.methods.getHealthGrade = function (score) {
   if (score >= 90) return 'A+';
   if (score >= 80) return 'A';
   if (score >= 70) return 'B+';
@@ -406,16 +411,16 @@ userSchema.methods.getHealthGrade = function(score) {
 /**
  * Update health score
  */
-userSchema.methods.updateHealthScore = async function(scoreData) {
+userSchema.methods.updateHealthScore = async function (scoreData) {
   const { score, components } = scoreData;
-  
+
   // Add to history (keep last 12 months)
   this.healthScore.history.push({
     date: new Date(),
     score: score,
     components: components
   });
-  
+
   if (this.healthScore.history.length > 12) {
     this.healthScore.history = this.healthScore.history.slice(-12);
   }

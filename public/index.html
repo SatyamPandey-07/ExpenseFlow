@@ -53,7 +53,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="nav-toggle" id="nav-toggle">
           <span class="bar"></span>
           <span class="bar"></span>
@@ -851,9 +851,9 @@
               <option value="healthcare">🏥 Healthcare</option>
               <option value="education">📚 Education</option>
               <option value="travel">✈️ Travel</option>
-               <option value="salary">💼 Salary</option>
-                <option value="investment">📈 Investment</option>
-                <option value="other">📋 Other</option>
+              <option value="salary">💼 Salary</option>
+              <option value="investment">📈 Investment</option>
+              <option value="other">📋 Other</option>
             </select>
           </div>
           <div class="bulk-form-group">
@@ -872,68 +872,68 @@
       </div>
     </div>
 
-          <div class="settings-card">
-            <h4><i class="fas fa-user-friends"></i> Members</h4>
-            <div id="members-list" class="members-list">
-              <!-- Members will be loaded here -->
-            </div>
-            <button class="btn-secondary" onclick="openInviteModal()">
-              <i class="fas fa-user-plus"></i> Invite Member
-            </button>
-          </div>
-        </div>
+    <div class="settings-card">
+      <h4><i class="fas fa-user-friends"></i> Members</h4>
+      <div id="members-list" class="members-list">
+        <!-- Members will be loaded here -->
+      </div>
+      <button class="btn-secondary" onclick="openInviteModal()">
+        <i class="fas fa-user-plus"></i> Invite Member
+      </button>
+    </div>
+    </div>
 
-        <!-- Approvals Settings -->
-        <div id="approvals-settings" class="settings-content">
-          <div class="settings-card">
-            <h4><i class="fas fa-check-circle"></i> Expense Approvals</h4>
-            <div class="approval-config">
-              <div class="form-control">
-                <label for="approval-required">Require Approval for Expenses Over:</label>
-                <input type="number" id="approval-required" placeholder="10000" min="0" step="100">
-                <small>Set to 0 to disable approval workflow</small>
-              </div>
-              <button class="btn-submit" onclick="saveApprovalSettings()">
-                <i class="fas fa-save"></i> Save Settings
-              </button>
-            </div>
+    <!-- Approvals Settings -->
+    <div id="approvals-settings" class="settings-content">
+      <div class="settings-card">
+        <h4><i class="fas fa-check-circle"></i> Expense Approvals</h4>
+        <div class="approval-config">
+          <div class="form-control">
+            <label for="approval-required">Require Approval for Expenses Over:</label>
+            <input type="number" id="approval-required" placeholder="10000" min="0" step="100">
+            <small>Set to 0 to disable approval workflow</small>
           </div>
-
-          <div class="settings-card">
-            <h4><i class="fas fa-clock"></i> Pending Approvals</h4>
-            <div id="pending-approvals" class="approvals-list">
-              <!-- Pending approvals will be loaded here -->
-            </div>
-          </div>
-
-          <div class="settings-card">
-            <h4><i class="fas fa-history"></i> Approval History</h4>
-            <div id="approval-history" class="approvals-list">
-              <!-- Approval history will be loaded here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Profile Settings -->
-        <div id="profile-settings" class="settings-content">
-          <div class="settings-card">
-            <h4><i class="fas fa-user"></i> Profile Information</h4>
-            <div class="profile-form">
-              <div class="form-control">
-                <label for="profile-name">Full Name:</label>
-                <input type="text" id="profile-name" placeholder="Your full name">
-              </div>
-              <div class="form-control">
-                <label for="profile-email">Email:</label>
-                <input type="email" id="profile-email" placeholder="your.email@example.com" readonly>
-              </div>
-              <button class="btn-submit" onclick="updateProfile()">
-                <i class="fas fa-save"></i> Update Profile
-              </button>
-            </div>
-          </div>
+          <button class="btn-submit" onclick="saveApprovalSettings()">
+            <i class="fas fa-save"></i> Save Settings
+          </button>
         </div>
       </div>
+
+      <div class="settings-card">
+        <h4><i class="fas fa-clock"></i> Pending Approvals</h4>
+        <div id="pending-approvals" class="approvals-list">
+          <!-- Pending approvals will be loaded here -->
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h4><i class="fas fa-history"></i> Approval History</h4>
+        <div id="approval-history" class="approvals-list">
+          <!-- Approval history will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Settings -->
+    <div id="profile-settings" class="settings-content">
+      <div class="settings-card">
+        <h4><i class="fas fa-user"></i> Profile Information</h4>
+        <div class="profile-form">
+          <div class="form-control">
+            <label for="profile-name">Full Name:</label>
+            <input type="text" id="profile-name" placeholder="Your full name">
+          </div>
+          <div class="form-control">
+            <label for="profile-email">Email:</label>
+            <input type="email" id="profile-email" placeholder="your.email@example.com" readonly>
+          </div>
+          <button class="btn-submit" onclick="updateProfile()">
+            <i class="fas fa-save"></i> Update Profile
+          </button>
+        </div>
+      </div>
+    </div>
+    </div>
     </section>
     </section>
 
@@ -1018,7 +1018,7 @@
     </div>
   </section>
 
-    <!-- Add Investment Modal
+  <!-- Add Investment Modal
     <div id="investment-modal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
@@ -1177,6 +1177,7 @@
   <script src="js/folders.js"></script>
   <script src="receipt-ocr.js"></script>
   <script src="index.js"> </script>
+  <script src="report-generator.js"></script>
 
   <!-- Create Folder Modal -->
   <div id="create-folder-modal" class="modal">

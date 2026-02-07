@@ -11,6 +11,7 @@ const {
 const { validateRequest } = require('../middleware/inputValidator');
 const { twoFactorLimiter, verifyCodeLimiter } = require('../middleware/rateLimiter');
 const twoFactorAuthService = require('../services/twoFactorAuthService');
+const accountTakeoverAlertingService = require('../services/accountTakeoverAlertingService');
 const TwoFactorAuth = require('../models/TwoFactorAuth');
 const AuditLog = require('../models/AuditLog');
 
@@ -83,6 +84,26 @@ router.post('/setup/verify', auth, verifyCodeLimiter, async (req, res) => {
       }
     });
 
+    // Trigger account takeover alert for 2FA enable
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'enabled',
+          method: 'totp',
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending 2FA change alert:', alertError);
+    }
+
     res.json({
       success: true,
       backupCodes: result.backupCodes,
@@ -133,6 +154,26 @@ router.post('/disable', auth, async (req, res) => {
 
     const result = await twoFactorAuthService.disableTwoFactorAuth(req.user.id, password);
 
+    // Trigger account takeover alert for 2FA disable (CRITICAL)
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'disabled',
+          method: null,
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending 2FA disable alert:', alertError);
+    }
+
     res.json(result);
   } catch (error) {
     console.error('Error disabling 2FA:', error);
@@ -147,6 +188,26 @@ router.post('/disable', auth, async (req, res) => {
 router.post('/backup-codes/regenerate', auth, async (req, res) => {
   try {
     const codes = await twoFactorAuthService.regenerateBackupCodes(req.user.id);
+
+    // Trigger account takeover alert for backup codes regeneration
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'backup_codes_regenerated',
+          method: null,
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending backup codes alert:', alertError);
+    }
 
     res.json({
       success: true,
@@ -172,6 +233,26 @@ router.post('/method/switch', auth, async (req, res) => {
     }
 
     const result = await twoFactorAuthService.switchTwoFactorMethod(req.user.id, method);
+
+    // Trigger account takeover alert for method change
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'method_changed',
+          method: method,
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending 2FA method change alert:', alertError);
+    }
 
     res.json(result);
   } catch (error) {
@@ -372,6 +453,240 @@ router.post('/send-code-email', auth, async (req, res) => {
   } catch (error) {
     console.error('Error sending 2FA code:', error);
     res.status(500).json({ error: error.message || 'Failed to send 2FA code' });
+  }
+});
+
+/**
+ * POST /2fa/email/setup
+ * Setup email as 2FA method
+ */
+router.post('/email/setup', auth, twoFactorLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    const result = await twoFactorAuthService.setupEmailMethod(req.user.id, email);
+
+    res.json({
+      success: result.success,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error setting up email 2FA:', error);
+    res.status(400).json({ error: error.message || 'Failed to setup email 2FA' });
+  }
+});
+
+/**
+ * POST /2fa/email/verify
+ * Verify email and enable email 2FA
+ */
+router.post('/email/verify', auth, verifyCodeLimiter, async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'Invalid verification code format' });
+    }
+
+    const result = await twoFactorAuthService.verifyAndEnableEmail(req.user.id, code);
+
+    // Log the action
+    await AuditLog.create({
+      userId: req.user.id,
+      action: '2FA_SETUP_COMPLETED',
+      actionType: 'security',
+      resourceType: 'TwoFactorAuth',
+      details: {
+        method: 'email'
+      }
+    });
+
+    // Trigger account takeover alert for 2FA enable
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'enabled',
+          method: 'email',
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending 2FA change alert:', alertError);
+    }
+
+    res.json({
+      success: true,
+      backupCodes: result.backupCodes,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error verifying email 2FA setup:', error);
+    res.status(400).json({ error: error.message || 'Failed to verify email code' });
+  }
+});
+
+/**
+ * POST /2fa/email/verify-login
+ * Verify email code during login
+ */
+router.post('/email/verify-login', auth, verifyCodeLimiter, async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'Invalid code format' });
+    }
+
+    const result = await twoFactorAuthService.verifyEmailCode(req.user.id, code);
+
+    // Log successful verification
+    await AuditLog.create({
+      userId: req.user.id,
+      action: '2FA_VERIFIED',
+      actionType: 'security',
+      resourceType: 'TwoFactorAuth',
+      details: {
+        method: 'email'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Email verification successful'
+    });
+  } catch (error) {
+    console.error('Error verifying email code:', error);
+    res.status(400).json({ error: error.message || 'Failed to verify email code' });
+  }
+});
+
+/**
+ * POST /2fa/sms/send-code
+ * Send SMS code for 2FA setup
+ */
+router.post('/sms/send-code', auth, twoFactorLimiter, async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    const result = await twoFactorAuthService.sendSMSCode(req.user.id, phoneNumber);
+
+    res.json({
+      success: result.success,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error sending SMS code:', error);
+    res.status(400).json({ error: error.message || 'Failed to send SMS code' });
+  }
+});
+
+/**
+ * POST /2fa/sms/verify
+ * Verify SMS code and enable SMS 2FA
+ */
+router.post('/sms/verify', auth, verifyCodeLimiter, async (req, res) => {
+  try {
+    const { phoneNumber, code } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    if (!code || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'Invalid SMS code format' });
+    }
+
+    const result = await twoFactorAuthService.verifyAndEnableSMS(req.user.id, phoneNumber, code);
+
+    // Log the action
+    await AuditLog.create({
+      userId: req.user.id,
+      action: '2FA_SETUP_COMPLETED',
+      actionType: 'security',
+      resourceType: 'TwoFactorAuth',
+      details: {
+        method: 'sms'
+      }
+    });
+
+    // Trigger account takeover alert for 2FA enable
+    try {
+      await accountTakeoverAlertingService.alertTwoFAChange(
+        req.user.id,
+        {
+          action: 'enabled',
+          method: 'sms',
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date()
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending 2FA change alert:', alertError);
+    }
+
+    res.json({
+      success: true,
+      backupCodes: result.backupCodes,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Error verifying SMS setup:', error);
+    res.status(400).json({ error: error.message || 'Failed to verify SMS code' });
+  }
+});
+
+/**
+ * POST /2fa/sms/verify-login
+ * Verify SMS code during login
+ */
+router.post('/sms/verify-login', auth, verifyCodeLimiter, async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'Invalid code format' });
+    }
+
+    const result = await twoFactorAuthService.verifySMSCode(req.user.id, code);
+
+    // Log successful verification
+    await AuditLog.create({
+      userId: req.user.id,
+      action: '2FA_VERIFIED',
+      actionType: 'security',
+      resourceType: 'TwoFactorAuth',
+      details: {
+        method: 'sms'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'SMS verification successful'
+    });
+  } catch (error) {
+    console.error('Error verifying SMS code:', error);
+    res.status(400).json({ error: error.message || 'Failed to verify SMS code' });
   }
 });
 

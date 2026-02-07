@@ -245,15 +245,16 @@ console.log('Collaboration handler initialized');
 
 // Routes
 app.use('/api/auth', require('./middleware/rateLimiter').authLimiter, authRoutes);
+app.use('/api/expenses', expenseRoutes); // Expense management
 app.use('/api/currency', require('./routes/currency'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/splits', require('./routes/splits'));
 app.use('/api/workspaces', require('./routes/workspaces'));
 app.use('/api/tax', require('./routes/tax'));
-app.use('/api/backups', backupRoutes); // Issue #462: Backup Management API
+app.use('/api/backups', backupRoutes);
 app.use('/api/accounts', require('./routes/accounts'));
-app.use('/api/accounts', require('./routes/accounts'));
-app.use('/api/2fa', require('./middleware/auth'), twoFactorAuthRoutes); // Issue #503: 2FA Management
+app.use('/api/tags', require('./routes/tags'));
+app.use('/api/2fa', require('./middleware/auth'), twoFactorAuthRoutes);
 app.use('/api/receipts', require('./routes/receipts'));
 app.use('/api/folders', require('./routes/folders'));
 app.use('/api/procurement', require('./routes/procurement'));

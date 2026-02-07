@@ -777,6 +777,397 @@ class TwoFactorAuthService {
       console.error('Error logging 2FA security event:', error);
     }
   }
+
+  /**
+   * Send SMS code for 2FA setup
+   * @param {string} userId - User ID
+   * @param {string} phoneNumber - Phone number to send SMS to
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async sendSMSCode(userId, phoneNumber) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Validate phone number format
+      const phoneRegex = /^\+?1?\d{9,15}$/;
+      if (!phoneRegex.test(phoneNumber.replace(/[^\d+]/g, ''))) {
+        throw new Error('Invalid phone number format');
+      }
+
+      // Generate 6-digit SMS code
+      const smsCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId });
+      if (!twoFAAuth) {
+        throw new Error('2FA not configured');
+      }
+
+      // Store SMS code temporarily
+      twoFAAuth.oneTimePasswords.push({
+        password: smsCode,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+      });
+
+      twoFAAuth.phoneNumber = phoneNumber;
+      await twoFAAuth.save();
+
+      // Send SMS via third-party service (Twillio, AWS SNS, etc.)
+      // For now, we'll log it. In production, integrate with SMS provider
+      await this._sendSMSViaProvider(phoneNumber, `Your ExpenseFlow 2FA code is: ${smsCode}. Valid for 10 minutes.`);
+
+      return { 
+        success: true, 
+        message: 'SMS code sent successfully' 
+      };
+    } catch (error) {
+      console.error('Error sending SMS code:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify SMS code and enable SMS 2FA
+   * @param {string} userId - User ID
+   * @param {string} phoneNumber - Phone number
+   * @param {string} code - SMS code
+   * @returns {Promise<{success: boolean, backupCodes?: string[]}>}
+   */
+  async verifyAndEnableSMS(userId, phoneNumber, code) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId });
+      if (!twoFAAuth) {
+        throw new Error('2FA not configured');
+      }
+
+      // Check if account is locked
+      if (twoFAAuth.isLocked()) {
+        throw new Error('Too many failed attempts. Please try again later.');
+      }
+
+      // Verify the code
+      const otp = twoFAAuth.oneTimePasswords.find(
+        op => op.password === code && op.expiresAt > new Date() && !op.used
+      );
+
+      if (!otp) {
+        twoFAAuth.incrementFailedAttempts();
+        await twoFAAuth.save();
+        throw new Error('Invalid or expired SMS code');
+      }
+
+      // Mark code as used
+      otp.used = true;
+      otp.usedAt = new Date();
+
+      // Enable SMS 2FA
+      twoFAAuth.phoneNumber = phoneNumber;
+      twoFAAuth.phoneVerified = true;
+      twoFAAuth.phoneVerificationCode = null;
+      twoFAAuth.phoneVerificationExpires = null;
+      twoFAAuth.enabled = true;
+      twoFAAuth.method = 'sms';
+      twoFAAuth.enrolledAt = new Date();
+      twoFAAuth.enrollmentCompletedAt = new Date();
+
+      // Generate backup codes
+      const backupCodes = twoFAAuth.generateBackupCodes(10);
+
+      // Clear setup fields
+      twoFAAuth.setupSecretExpires = null;
+      twoFAAuth.setupAttempts = 0;
+      twoFAAuth.resetFailedAttempts();
+
+      await twoFAAuth.save();
+
+      // Log the action
+      await AuditLog.create({
+        userId,
+        action: '2FA_ENABLED',
+        actionType: 'security',
+        resourceType: 'TwoFactorAuth',
+        details: {
+          method: 'sms',
+          phoneNumber: this._maskPhoneNumber(phoneNumber),
+          backupCodesGenerated: backupCodes.length
+        }
+      });
+
+      return {
+        success: true,
+        backupCodes: backupCodes,
+        message: 'SMS two-factor authentication enabled successfully'
+      };
+    } catch (error) {
+      console.error('Error verifying SMS setup:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify SMS code during login
+   * @param {string} userId - User ID
+   * @param {string} code - SMS code
+   * @returns {Promise<boolean>}
+   */
+  async verifySMSCode(userId, code) {
+    try {
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId });
+
+      if (!twoFAAuth || !twoFAAuth.enabled || twoFAAuth.method !== 'sms') {
+        throw new Error('SMS 2FA not enabled for this user');
+      }
+
+      // Check if account is locked
+      if (twoFAAuth.isLocked()) {
+        throw new Error('Too many failed attempts. Please try again later.');
+      }
+
+      // Find valid code
+      const otp = twoFAAuth.oneTimePasswords.find(
+        op => op.password === code && op.expiresAt > new Date() && !op.used
+      );
+
+      if (!otp) {
+        twoFAAuth.incrementFailedAttempts();
+        await twoFAAuth.save();
+        throw new Error('Invalid or expired SMS code');
+      }
+
+      // Mark code as used
+      otp.used = true;
+      otp.usedAt = new Date();
+
+      // Reset failed attempts on successful verification
+      twoFAAuth.resetFailedAttempts();
+      twoFAAuth.lastUsedAt = new Date();
+      await twoFAAuth.save();
+
+      return true;
+    } catch (error) {
+      console.error('Error verifying SMS code:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Setup email as 2FA method
+   * @param {string} userId - User ID
+   * @param {string} recoveryEmail - Recovery email for 2FA
+   * @returns {Promise<{success: boolean}>}
+   */
+  async setupEmailMethod(userId, recoveryEmail) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recoveryEmail)) {
+        throw new Error('Invalid email format');
+      }
+
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId });
+      if (!twoFAAuth) {
+        throw new Error('2FA not configured');
+      }
+
+      // Generate verification code for email
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      twoFAAuth.recoveryEmail = recoveryEmail;
+      twoFAAuth.recoveryEmailVerificationCode = verificationCode;
+      twoFAAuth.recoveryEmailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await twoFAAuth.save();
+
+      // Send verification code to email
+      await emailService.sendEmail({
+        to: recoveryEmail,
+        subject: 'Verify Your ExpenseFlow Recovery Email',
+        template: 'email-2fa-verification',
+        data: {
+          userName: user.name,
+          code: verificationCode,
+          expiresIn: '15 minutes'
+        }
+      });
+
+      return { 
+        success: true, 
+        message: 'Verification code sent to email' 
+      };
+    } catch (error) {
+      console.error('Error setting up email method:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify email and enable email 2FA method
+   * @param {string} userId - User ID
+   * @param {string} verificationCode - Code sent to email
+   * @returns {Promise<{success: boolean, backupCodes?: string[]}>}
+   */
+  async verifyAndEnableEmail(userId, verificationCode) {
+    try {
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId }).select('+recoveryEmailVerificationCode');
+
+      if (!twoFAAuth) {
+        throw new Error('2FA not configured');
+      }
+
+      if (!twoFAAuth.recoveryEmail) {
+        throw new Error('Recovery email not set');
+      }
+
+      if (twoFAAuth.recoveryEmailVerificationExpires < new Date()) {
+        throw new Error('Verification code has expired. Please request a new one.');
+      }
+
+      // Check if account is locked
+      if (twoFAAuth.isLocked()) {
+        throw new Error('Too many failed attempts. Please try again later.');
+      }
+
+      // Verify code
+      if (twoFAAuth.recoveryEmailVerificationCode !== verificationCode) {
+        twoFAAuth.incrementFailedAttempts();
+        await twoFAAuth.save();
+        throw new Error('Invalid verification code');
+      }
+
+      // Enable email 2FA
+      twoFAAuth.recoveryEmailVerified = true;
+      twoFAAuth.recoveryEmailVerificationCode = null;
+      twoFAAuth.recoveryEmailVerificationExpires = null;
+      twoFAAuth.enabled = true;
+      twoFAAuth.method = 'email';
+      twoFAAuth.enrolledAt = new Date();
+      twoFAAuth.enrollmentCompletedAt = new Date();
+
+      // Generate backup codes
+      const backupCodes = twoFAAuth.generateBackupCodes(10);
+
+      twoFAAuth.resetFailedAttempts();
+      await twoFAAuth.save();
+
+      // Log the action
+      await AuditLog.create({
+        userId,
+        action: '2FA_ENABLED',
+        actionType: 'security',
+        resourceType: 'TwoFactorAuth',
+        details: {
+          method: 'email',
+          email: twoFAAuth.recoveryEmail,
+          backupCodesGenerated: backupCodes.length
+        }
+      });
+
+      return {
+        success: true,
+        backupCodes: backupCodes,
+        message: 'Email two-factor authentication enabled successfully'
+      };
+    } catch (error) {
+      console.error('Error verifying email setup:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify email code during login
+   * @param {string} userId - User ID
+   * @param {string} code - Email code
+   * @returns {Promise<boolean>}
+   */
+  async verifyEmailCode(userId, code) {
+    try {
+      const twoFAAuth = await TwoFactorAuth.findOne({ userId });
+
+      if (!twoFAAuth || !twoFAAuth.enabled || twoFAAuth.method !== 'email') {
+        throw new Error('Email 2FA not enabled for this user');
+      }
+
+      // Check if account is locked
+      if (twoFAAuth.isLocked()) {
+        throw new Error('Too many failed attempts. Please try again later.');
+      }
+
+      // Find valid code
+      const otp = twoFAAuth.oneTimePasswords.find(
+        op => op.password === code && op.expiresAt > new Date() && !op.used
+      );
+
+      if (!otp) {
+        twoFAAuth.incrementFailedAttempts();
+        await twoFAAuth.save();
+        throw new Error('Invalid or expired email code');
+      }
+
+      // Mark code as used
+      otp.used = true;
+      otp.usedAt = new Date();
+
+      // Reset failed attempts on successful verification
+      twoFAAuth.resetFailedAttempts();
+      twoFAAuth.lastUsedAt = new Date();
+      await twoFAAuth.save();
+
+      return true;
+    } catch (error) {
+      console.error('Error verifying email code:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper function to send SMS via provider
+   * @private
+   * @param {string} phoneNumber - Recipient phone number
+   * @param {string} message - SMS message
+   */
+  async _sendSMSViaProvider(phoneNumber, message) {
+    try {
+      // TODO: Integrate with actual SMS provider (Twilio, AWS SNS, etc.)
+      // Example with Twilio:
+      // const twilio = require('twilio');
+      // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      // await client.messages.create({
+      //   body: message,
+      //   from: process.env.TWILIO_PHONE_NUMBER,
+      //   to: phoneNumber
+      // });
+
+      console.log(`SMS sent to ${phoneNumber}: ${message}`);
+      return true;
+    } catch (error) {
+      console.error('Error sending SMS via provider:', error);
+      throw new Error('Failed to send SMS. Please try again later.');
+    }
+  }
+
+  /**
+   * Helper function to mask phone number
+   * @private
+   * @param {string} phoneNumber - Phone number to mask
+   * @returns {string} Masked phone number
+   */
+  _maskPhoneNumber(phoneNumber) {
+    const cleaned = phoneNumber.replace(/[^\d]/g, '');
+    const lastFour = cleaned.slice(-4);
+    return `***-***-${lastFour}`;
+  }
 }
 
 module.exports = new TwoFactorAuthService();

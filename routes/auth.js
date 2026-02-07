@@ -7,6 +7,8 @@ const AuditLog = require('../models/AuditLog');
 const emailService = require('../services/emailService');
 const securityMonitor = require('../services/securityMonitor');
 const SecurityService = require('../services/securityService');
+const DeviceFingerprint = require('../models/DeviceFingerprint');
+const { captureDeviceFingerprint, generateFingerprint } = require('../middleware/deviceFingerprint');
 const auth = require('../middleware/auth');
 const { AuthSchemas, validateRequest } = require('../middleware/inputValidator');
 const {
@@ -60,6 +62,30 @@ router.post('/register', registerLimiter, validateRequest(AuthSchemas.register),
   emailService.sendWelcomeEmail(user).catch(err =>
     console.error('Welcome email failed:', err)
   );
+
+  // Capture Device Fingerprint
+  try {
+    // Scope fingerprint to user
+    const baseFingerprint = generateFingerprint(req);
+    const fingerprintHash = `${baseFingerprint}_${user._id}`;
+
+    await DeviceFingerprint.create({
+      user: user._id,
+      fingerprint: fingerprintHash,
+      deviceInfo: {
+        userAgent: req.headers['user-agent'],
+        screen: {},
+        language: req.headers['accept-language'],
+        platform: req.headers['sec-ch-ua-platform']
+      },
+      networkInfo: {
+        ipAddress: req.ip || req.connection.remoteAddress
+      },
+      status: 'trusted'
+    });
+  } catch (fpError) {
+    console.error('Failed to save device fingerprint on register:', fpError);
+  }
 
   return ResponseFactory.created(res, {
     token,
@@ -157,6 +183,40 @@ router.post('/login', loginLimiter, validateRequest(AuthSchemas.login), async (r
       }
     });
 
+    // Capture Device Fingerprint
+    try {
+      // Scope fingerprint to user to allow multiple users on same device (prevents unique constraint error)
+      const baseFingerprint = generateFingerprint(req);
+      const fingerprintHash = `${baseFingerprint}_${user._id}`;
+
+      const existingDevice = await DeviceFingerprint.findOne({ fingerprint: fingerprintHash });
+
+      if (!existingDevice) {
+        await DeviceFingerprint.create({
+          user: user._id,
+          fingerprint: fingerprintHash,
+          deviceInfo: {
+            userAgent: req.headers['user-agent'],
+            screen: req.body.screen || {},
+            language: req.headers['accept-language'],
+            platform: req.headers['sec-ch-ua-platform']
+          },
+          networkInfo: {
+            ipAddress: req.ip || req.connection.remoteAddress
+          },
+          status: 'trusted'
+        });
+      } else {
+        // Update last seen
+        existingDevice.lastSeen = new Date();
+        existingDevice.loginCount += 1;
+        await existingDevice.save();
+      }
+    } catch (fpError) {
+      console.error('Failed to save device fingerprint:', fpError);
+      // Don't block login on fingerprint error
+    }
+
     res.json({
       token,
       sessionId: session._id,
@@ -220,6 +280,28 @@ router.post('/verify-2fa', async (req, res) => {
       status: 'success',
       securityContext: { totpUsed: true }
     });
+
+    // Trigger account takeover alerting for new device login
+    try {
+      await accountTakeoverAlertingService.alertNewDeviceLogin(
+        user._id,
+        {
+          deviceName: req.body.deviceName,
+          deviceType: req.body.deviceType || 'unknown',
+          userAgent: req.get('User-Agent'),
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country,
+            coordinates: req.body.location?.coordinates
+          }
+        },
+        session
+      );
+    } catch (alertError) {
+      console.error('Error sending account takeover alert:', alertError);
+      // Don't fail login if alerting fails
+    }
 
     res.json({
       token,
@@ -491,9 +573,29 @@ router.post('/security/change-password', auth, async (req, res) => {
       status: 'success'
     });
 
-    res.json({
-      success: true,
-      message: 'Password changed successfully. Other sessions have been logged out.'
+    // Trigger account takeover alert for password change
+    try {
+      await accountTakeoverAlertingService.alertPasswordChange(
+        req.user._id,
+        {
+          ipAddress: req.ip,
+          location: {
+            city: req.body.location?.city,
+            country: req.body.location?.country
+          },
+          userAgent: req.get('User-Agent'),
+          timestamp: new Date(),
+          initiatedBy: 'user'
+        }
+      );
+    } catch (alertError) {
+      console.error('Error sending password change alert:', alertError);
+      // Don't fail password change if alerting fails
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Password changed successfully. Other sessions have been logged out.' 
     });
   } catch (error) {
     console.error('Change password error:', error);

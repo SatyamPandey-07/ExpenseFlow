@@ -58,31 +58,196 @@ async function proceedToSetup() {
     }
 
     try {
-        const response = await fetch('/api/2fa/setup/initiate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getToken()}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to initiate 2FA setup');
-        }
-
-        const data = await response.json();
-
         if (selectedMethod === 'totp') {
+            // TOTP setup
+            const response = await fetch('/api/2fa/setup/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to initiate 2FA setup');
+            }
+
+            const data = await response.json();
+
             // Display QR code and manual entry key
             document.getElementById('qr-code').innerHTML = data.qrCode;
             document.getElementById('manual-key').textContent = data.manualEntryKey;
 
             // Move to setup step
             goToStep(2);
+        } else if (selectedMethod === 'email') {
+            // Email setup - show email input
+            goToStep(2);
+        } else if (selectedMethod === 'sms') {
+            // SMS setup - show phone input
+            goToStep(2);
         }
     } catch (error) {
         console.error('Error:', error);
         alert(error.message || 'Failed to initiate 2FA setup');
+    }
+}
+
+/**
+ * Setup email 2FA
+ */
+async function setupEmailMethod() {
+    const email = document.getElementById('email-input').value.trim();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        document.getElementById('email-error').textContent = 'Please enter a valid email address';
+        return;
+    }
+
+    try {
+        document.getElementById('email-loading').style.display = 'flex';
+        document.getElementById('email-error').textContent = '';
+
+        const response = await fetch('/api/2fa/email/setup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to setup email 2FA');
+        }
+
+        document.getElementById('email-setup').style.display = 'none';
+        document.getElementById('email-verify').style.display = 'block';
+    } catch (error) {
+        document.getElementById('email-error').textContent = error.message;
+    } finally {
+        document.getElementById('email-loading').style.display = 'none';
+    }
+}
+
+/**
+ * Verify email 2FA
+ */
+async function verifyEmailMethod() {
+    const code = document.getElementById('email-code').value.trim();
+
+    if (!code || !/^\d{6}$/.test(code)) {
+        document.getElementById('email-verify-error').textContent = 'Please enter a valid 6-digit code';
+        return;
+    }
+
+    try {
+        document.getElementById('email-verify-loading').style.display = 'flex';
+        document.getElementById('email-verify-error').textContent = '';
+
+        const response = await fetch('/api/2fa/email/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ code })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to verify email');
+        }
+
+        const data = await response.json();
+        backupCodes = data.backupCodes;
+        displayBackupCodes();
+        goToStep(4);
+    } catch (error) {
+        document.getElementById('email-verify-error').textContent = error.message;
+    } finally {
+        document.getElementById('email-verify-loading').style.display = 'none';
+    }
+}
+
+/**
+ * Setup SMS 2FA
+ */
+async function setupSMSMethod() {
+    const phoneNumber = document.getElementById('phone-input').value.trim();
+
+    if (!phoneNumber) {
+        document.getElementById('sms-error').textContent = 'Please enter a phone number';
+        return;
+    }
+
+    try {
+        document.getElementById('sms-loading').style.display = 'flex';
+        document.getElementById('sms-error').textContent = '';
+
+        const response = await fetch('/api/2fa/sms/send-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ phoneNumber })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to send SMS code');
+        }
+
+        document.getElementById('sms-setup').style.display = 'none';
+        document.getElementById('sms-verify').style.display = 'block';
+        document.getElementById('sms-phone-display').textContent = phoneNumber;
+    } catch (error) {
+        document.getElementById('sms-error').textContent = error.message;
+    } finally {
+        document.getElementById('sms-loading').style.display = 'none';
+    }
+}
+
+/**
+ * Verify SMS 2FA
+ */
+async function verifySMSMethod() {
+    const phoneNumber = document.getElementById('phone-input').value.trim();
+    const code = document.getElementById('sms-code').value.trim();
+
+    if (!code || !/^\d{6}$/.test(code)) {
+        document.getElementById('sms-verify-error').textContent = 'Please enter a valid 6-digit code';
+        return;
+    }
+
+    try {
+        document.getElementById('sms-verify-loading').style.display = 'flex';
+        document.getElementById('sms-verify-error').textContent = '';
+
+        const response = await fetch('/api/2fa/sms/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ phoneNumber, code })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to verify SMS');
+        }
+
+        const data = await response.json();
+        backupCodes = data.backupCodes;
+        displayBackupCodes();
+        goToStep(4);
+    } catch (error) {
+        document.getElementById('sms-verify-error').textContent = error.message;
+    } finally {
+        document.getElementById('sms-verify-loading').style.display = 'none';
     }
 }
 
@@ -94,10 +259,59 @@ function proceedToVerify() {
 }
 
 /**
+ * Display backup codes
+ */
+function displayBackupCodes() {
+    const codesBox = document.getElementById('backup-codes-box');
+    let html = '';
+
+    backupCodes.forEach((code, index) => {
+        html += `<span class="backup-code">${code}</span>`;
+    });
+
+    codesBox.innerHTML = html;
+}
+
+/**
  * Verify TOTP code
  */
 async function verifyTOTP() {
     const code = document.getElementById('totp-code').value;
+
+    if (code.length !== 6) {
+        return;
+    }
+
+    try {
+        document.getElementById('totp-error').textContent = '';
+        document.getElementById('totp-loading').style.display = 'flex';
+
+        const response = await fetch('/api/2fa/setup/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ code })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to verify TOTP code');
+        }
+
+        const data = await response.json();
+        backupCodes = data.backupCodes;
+        displayBackupCodes();
+        goToStep(4);
+    } catch (error) {
+        document.getElementById('totp-error').textContent = error.message || 'Invalid TOTP code';
+        document.getElementById('totp-code').value = '';
+        document.getElementById('totp-code').focus();
+    } finally {
+        document.getElementById('totp-loading').style.display = 'none';
+    }
+}
 
     if (!code || code.length !== 6) {
         showTOTPError('Please enter a valid 6-digit code');
@@ -245,12 +459,24 @@ function goToStep(step) {
     if (step === 1) {
         document.getElementById('step-1').classList.add('active');
     } else if (step === 2) {
+        document.getElementById('step-2').classList.add('active');
+        // Show the appropriate method setup
+        document.querySelectorAll('[id^="step-2-"]').forEach(el => {
+            el.style.display = 'none';
+        });
         if (selectedMethod === 'totp') {
-            document.getElementById('step-2-totp').classList.add('active');
+            document.getElementById('step-2-totp').style.display = 'block';
+        } else if (selectedMethod === 'email') {
+            document.getElementById('step-2-email').style.display = 'block';
+            setTimeout(() => document.getElementById('email-input').focus(), 100);
+        } else if (selectedMethod === 'sms') {
+            document.getElementById('step-2-sms').style.display = 'block';
+            setTimeout(() => document.getElementById('phone-input').focus(), 100);
         }
     } else if (step === 3) {
+        document.getElementById('step-3').classList.add('active');
         if (selectedMethod === 'totp') {
-            document.getElementById('step-3-totp').classList.add('active');
+            document.getElementById('step-3-totp').style.display = 'block';
             document.getElementById('totp-code').focus();
         }
     } else if (step === 4) {

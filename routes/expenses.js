@@ -103,6 +103,13 @@ router.put('/:id', auth, validateRequest(ExpenseSchemas.create), asyncHandler(as
 
   if (!expense) throw new NotFoundError('Expense not found');
 
+  // Issue #553: Trigger adaptive learning on manual correction
+  if (req.body.category && expense.merchant) {
+    const merchantLearningService = require('../services/merchantLearningService');
+    merchantLearningService.learnFromCorrection(req.user._id, expense.merchant, req.body.category)
+      .catch(err => console.error('[MerchantLearning] Error:', err));
+  }
+
   return ResponseFactory.success(res, expense, 'Expense updated successfully');
 }));
 
@@ -213,7 +220,7 @@ router.get('/stats/trends', auth, asyncHandler(async (req, res) => {
  * @access  Private
  */
 router.post('/export', auth, exportLimiter, asyncHandler(async (req, res) => {
-  const { format = 'csv', startDate, endDate, workspaceId } = req.body;
+  const { format = 'csv', startDate, endDate, workspaceId, category, type, currency, title } = req.body;
 
   const query = {
     user: req.user._id,
@@ -224,14 +231,68 @@ router.post('/export', auth, exportLimiter, asyncHandler(async (req, res) => {
     query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
   }
 
+  if (category && category !== 'all') {
+    query.category = category;
+  }
+
+  if (type && type !== 'all') {
+    query.type = type;
+  }
+
   const expenses = await expenseRepository.findAll(query, { sort: { date: -1 } });
 
-  const fileData = await exportService.generateExport(expenses, format);
+  // Use user's preferred currency if not specified, or default to INR
+  const exportCurrency = currency || req.user.preferredCurrency || 'INR';
 
-  res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename=expenses-${Date.now()}.${format}`);
+  const fileData = await exportService.generateExport(expenses, format, {
+    currency: exportCurrency,
+    title: title || 'Expense Application Report'
+  });
+
+  if (format === 'csv') {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=expenses-${Date.now()}.csv`);
+  } else if (format === 'pdf') {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=report-${Date.now()}.pdf`);
+  } else if (format === 'excel' || format === 'xlsx') {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=report-${Date.now()}.xlsx`);
+  }
 
   return res.send(fileData);
+}));
+
+/**
+ * @route   POST /api/expenses/report/preview
+ * @desc    Get report preview data
+ * @access  Private
+ */
+router.post('/report/preview', auth, asyncHandler(async (req, res) => {
+  const { startDate, endDate, workspaceId, category, type } = req.body;
+
+  const query = {
+    user: req.user._id,
+    workspace: workspaceId || null
+  };
+
+  if (startDate && endDate) {
+    query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+  }
+
+  if (category && category !== 'all') {
+    query.category = category;
+  }
+
+  if (type && type !== 'all') {
+    query.type = type;
+  }
+
+  const expenses = await expenseRepository.findAll(query, { sort: { date: -1 } });
+
+  const previewData = await exportService.generatePreview(expenses);
+
+  return ResponseFactory.success(res, previewData);
 }));
 
 module.exports = router;

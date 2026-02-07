@@ -8,9 +8,9 @@ let twilioClient = null;
 
 // Configure web push only if VAPID keys are provided
 if (process.env.VAPID_PUBLIC_KEY &&
-    process.env.VAPID_PRIVATE_KEY &&
-    process.env.VAPID_SUBJECT &&
-    process.env.VAPID_PUBLIC_KEY.length > 10) {
+  process.env.VAPID_PRIVATE_KEY &&
+  process.env.VAPID_SUBJECT &&
+  process.env.VAPID_PUBLIC_KEY.length > 10) {
   try {
     webpush.setVapidDetails(
       process.env.VAPID_SUBJECT,
@@ -38,7 +38,7 @@ class NotificationService {
   constructor() {
     this.emailTransporter = null;
     this.initEmailTransporter();
-    
+
     // Event type configurations
     this.eventTypes = {
       budget_alert: {
@@ -138,6 +138,20 @@ class NotificationService {
         defaultChannels: ['in_app', 'email', 'push'],
         priority: 'high',
         icon: '⚠️'
+      },
+      approval_required: {
+        name: 'Approval Required',
+        description: 'When an expense requires your approval',
+        defaultChannels: ['in_app', 'email', 'push'],
+        priority: 'high',
+        icon: '✍️'
+      },
+      approval_decision: {
+        name: 'Approval Decision',
+        description: 'When your expense has been approved or rejected',
+        defaultChannels: ['in_app', 'email', 'push'],
+        priority: 'medium',
+        icon: '⚖️'
       }
     };
   }
@@ -177,7 +191,7 @@ class NotificationService {
   // Create default preferences for new user
   async createDefaultPreferences(userId) {
     const defaultTypes = ['budget_alert', 'budget_breach', 'goal_achieved', 'security_alert', 'recurring_reminder'];
-    
+
     const preferences = new NotificationPreferences({
       user: userId,
       channels: {
@@ -229,26 +243,26 @@ class NotificationService {
     }
 
     // Check each channel
-    if (preferences.channels.email.enabled && 
-        preferences.channels.email.types?.includes(type)) {
+    if (preferences.channels.email.enabled &&
+      preferences.channels.email.types?.includes(type)) {
       channels.push('email');
     }
 
-    if (preferences.channels.push.enabled && 
-        preferences.channels.push.subscription &&
-        preferences.channels.push.types?.includes(type)) {
+    if (preferences.channels.push.enabled &&
+      preferences.channels.push.subscription &&
+      preferences.channels.push.types?.includes(type)) {
       channels.push('push');
     }
 
-    if (preferences.channels.sms.enabled && 
-        preferences.channels.sms.phoneNumber &&
-        preferences.channels.sms.types?.includes(type)) {
+    if (preferences.channels.sms.enabled &&
+      preferences.channels.sms.phoneNumber &&
+      preferences.channels.sms.types?.includes(type)) {
       channels.push('sms');
     }
 
-    if (preferences.channels.webhook.enabled && 
-        preferences.channels.webhook.url &&
-        preferences.channels.webhook.types?.includes(type)) {
+    if (preferences.channels.webhook.enabled &&
+      preferences.channels.webhook.url &&
+      preferences.channels.webhook.types?.includes(type)) {
       channels.push('webhook');
     }
 
@@ -261,7 +275,7 @@ class NotificationService {
 
     const now = new Date();
     const timezone = preferences.quietHours.timezone || 'UTC';
-    
+
     // Get current time in user's timezone
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
@@ -269,7 +283,7 @@ class NotificationService {
       minute: '2-digit',
       hour12: false
     });
-    
+
     const currentTime = formatter.format(now);
     const start = preferences.quietHours.start;
     const end = preferences.quietHours.end;
@@ -278,7 +292,7 @@ class NotificationService {
     if (start > end) {
       return currentTime >= start || currentTime <= end;
     }
-    
+
     return currentTime >= start && currentTime <= end;
   }
 
@@ -292,7 +306,7 @@ class NotificationService {
       }
 
       const eventConfig = this.eventTypes[notificationData.type] || this.eventTypes.system;
-      
+
       // Check quiet hours (bypass for critical notifications)
       const isCritical = notificationData.priority === 'critical' || eventConfig.priority === 'critical';
       if (!isCritical && this.isQuietHours(preferences)) {
@@ -378,7 +392,7 @@ class NotificationService {
     try {
       if (ioInstance) {
         const eventConfig = this.eventTypes[notification.type] || {};
-        
+
         ioInstance.to(`user_${notification.user}`).emit('notification', {
           id: notification._id,
           title: notification.title,
@@ -396,7 +410,7 @@ class NotificationService {
           user: notification.user,
           read: false
         });
-        
+
         ioInstance.to(`user_${notification.user}`).emit('notification_count', {
           count: unreadCount
         });
@@ -420,11 +434,11 @@ class NotificationService {
     try {
       const User = require('../models/User');
       const user = await User.findById(notification.user).select('email name');
-      
+
       if (!user?.email) return false;
 
       const eventConfig = this.eventTypes[notification.type] || {};
-      
+
       const htmlContent = this.generateEmailHTML(notification, user, eventConfig);
 
       await this.emailTransporter.sendMail({
@@ -518,7 +532,7 @@ class NotificationService {
 
     try {
       const eventConfig = this.eventTypes[notification.type] || {};
-      
+
       const payload = JSON.stringify({
         title: notification.title,
         body: notification.message,
@@ -546,18 +560,18 @@ class NotificationService {
       return true;
     } catch (error) {
       console.error('[NotificationService] Push notification error:', error);
-      
+
       // If subscription is invalid, remove it
       if (error.statusCode === 410 || error.statusCode === 404) {
         await NotificationPreferences.findOneAndUpdate(
           { user: notification.user },
-          { 
+          {
             'channels.push.subscription': null,
             'channels.push.enabled': false
           }
         );
       }
-      
+
       return false;
     }
   }
@@ -570,7 +584,7 @@ class NotificationService {
 
     try {
       const message = `ExpenseFlow: ${notification.title}\n${notification.message}`;
-      
+
       await twilioClient.messages.create({
         body: message.substring(0, 160), // SMS character limit
         from: process.env.TWILIO_PHONE_NUMBER,
@@ -605,7 +619,7 @@ class NotificationService {
 
       // Generate signature if secret is provided
       const headers = { 'Content-Type': 'application/json' };
-      
+
       if (preferences.channels.webhook.secret) {
         const crypto = require('crypto');
         const signature = crypto
@@ -631,22 +645,22 @@ class NotificationService {
   getEndOfQuietHours(preferences) {
     const now = new Date();
     const [endHour, endMinute] = preferences.quietHours.end.split(':').map(Number);
-    
+
     const endTime = new Date(now);
     endTime.setHours(endHour, endMinute, 0, 0);
-    
+
     // If end time is before now, it's tomorrow
     if (endTime <= now) {
       endTime.setDate(endTime.getDate() + 1);
     }
-    
+
     return endTime;
   }
 
   // Get user notifications with pagination
   async getUserNotifications(userId, options = {}) {
     const { page = 1, limit = 20, unreadOnly = false, type = null } = options;
-    
+
     const query = { user: userId };
     if (unreadOnly) query.read = false;
     if (type) query.type = type;
@@ -692,7 +706,7 @@ class NotificationService {
         user: userId,
         read: false
       });
-      
+
       ioInstance.to(`user_${userId}`).emit('notification_count', {
         count: unreadCount
       });
@@ -717,14 +731,14 @@ class NotificationService {
   // Delete notification
   async deleteNotification(notificationId, userId) {
     await Notification.deleteOne({ _id: notificationId, user: userId });
-    
+
     // Emit updated count
     if (ioInstance) {
       const unreadCount = await Notification.countDocuments({
         user: userId,
         read: false
       });
-      
+
       ioInstance.to(`user_${userId}`).emit('notification_count', {
         count: unreadCount
       });
@@ -734,7 +748,7 @@ class NotificationService {
   // Send bulk notifications (for announcements)
   async sendBulkNotification(userIds, notificationData) {
     const results = { success: 0, failed: 0 };
-    
+
     for (const userId of userIds) {
       try {
         await this.sendNotification(userId, notificationData);
@@ -743,26 +757,26 @@ class NotificationService {
         results.failed++;
       }
     }
-    
+
     return results;
   }
 
   // Process scheduled notifications (called by cron)
   async processScheduledNotifications() {
     const now = new Date();
-    
+
     const scheduled = await Notification.find({
       scheduledFor: { $lte: now },
       'delivered.in_app': false
     });
 
     for (const notification of scheduled) {
-      const preferences = await NotificationPreferences.findOne({ 
-        user: notification.user 
+      const preferences = await NotificationPreferences.findOne({
+        user: notification.user
       });
-      
+
       await this.dispatchToChannels(notification, preferences);
-      
+
       notification.delivered.in_app = true;
       notification.deliveredAt.in_app = now;
       await notification.save();
@@ -797,9 +811,41 @@ class NotificationService {
       priority: 'medium',
       data: {
         goalId: goalData.goalId,
+        goalId: goalData.goalId,
         name: goalData.name,
         targetAmount: goalData.targetAmount,
         actionUrl: '/goals'
+      }
+    });
+  }
+
+  async notifyApprovalRequired(approverId, submissionData) {
+    return this.sendNotification(approverId, {
+      title: 'Approval Required',
+      message: `${submissionData.submitterName} submitted an expense of ₹${submissionData.amount} for approval.`,
+      type: 'approval_required',
+      priority: 'high',
+      data: {
+        submissionId: submissionData.id,
+        amount: submissionData.amount,
+        description: submissionData.description,
+        actionUrl: '/approval-dashboard.html'
+      }
+    });
+  }
+
+  async notifyApprovalDecision(submitterId, decisionData) {
+    const isApproved = decisionData.status === 'approved';
+    return this.sendNotification(submitterId, {
+      title: `Expense ${isApproved ? 'Approved' : 'Rejected'}`,
+      message: `Your expense for ${decisionData.description} has been ${decisionData.status} by ${decisionData.approverName}.`,
+      type: 'approval_decision',
+      priority: isApproved ? 'medium' : 'high',
+      data: {
+        submissionId: decisionData.id,
+        status: decisionData.status,
+        comment: decisionData.comment,
+        actionUrl: '/approval-dashboard.html'
       }
     });
   }
