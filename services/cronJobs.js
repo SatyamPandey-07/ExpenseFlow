@@ -99,6 +99,12 @@ class CronJobs {
       await this.updateDailyPortfolioMetrics();
     });
 
+    // Retrain ML categorization models - Daily at 2 AM
+    cron.schedule('0 2 * * *', async () => {
+      console.log('[CronJobs] Retraining ML categorization models...');
+      await this.retrainCategorizationModels();
+    });
+
     console.log('Cron jobs initialized successfully');
   }
 
@@ -380,6 +386,29 @@ class CronJobs {
       }
     } catch (error) {
       console.error('Budget alert error:', error);
+    }
+  }
+
+  static async retrainCategorizationModels() {
+    try {
+      const categorizationService = require('../services/categorizationService');
+      const users = await User.find({});
+
+      let retrainedCount = 0;
+      for (const user of users) {
+        try {
+          const success = await categorizationService.trainModel(user._id);
+          if (success) {
+            retrainedCount++;
+          }
+        } catch (error) {
+          console.error(`Error retraining model for user ${user._id}:`, error);
+        }
+      }
+
+      console.log(`[CronJobs] Retrained ML models for ${retrainedCount} users`);
+    } catch (error) {
+      console.error('[CronJobs] Error retraining categorization models:', error);
     }
   }
 }

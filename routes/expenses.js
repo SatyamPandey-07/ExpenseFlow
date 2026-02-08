@@ -100,15 +100,51 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid currency code' });
     }
 
+    // Auto-categorize if category not provided or is 'other'
+    let finalCategory = value.category;
+    let autoCategorized = false;
+    let categorySuggestions = [];
+
+    if (!value.category || value.category === 'other') {
+      try {
+        categorySuggestions = await categorizationService.suggestCategory(
+          req.user._id,
+          value.description,
+          value.amount
+        );
+
+        if (categorySuggestions.length > 0) {
+          finalCategory = categorySuggestions[0].category;
+          autoCategorized = true;
+
+          // Save training data for future ML improvement
+          const CategoryTraining = require('../models/CategoryTraining');
+          await CategoryTraining.create({
+            user: req.user._id,
+            description: value.description,
+            amount: value.amount,
+            category: finalCategory,
+            merchant: value.merchant,
+            source: 'auto_categorized'
+          });
+        }
+      } catch (categorizationError) {
+        console.error('Auto-categorization failed:', categorizationError);
+        // Continue with original category or 'other'
+      }
+    }
+
     // Store original amount and currency
     const expenseData = {
       ...value,
+      category: finalCategory,
       user: value.workspaceId ? req.user._id : req.user._id, // User still relevant for reporting
       addedBy: req.user._id,
       workspace: value.workspaceId || null,
       originalAmount: value.amount,
       originalCurrency: expenseCurrency,
-      amount: value.amount // Keep original as primary amount
+      amount: value.amount, // Keep original as primary amount
+      autoCategorized
     };
 
     // If expense currency differs from user preference, add conversion info
