@@ -28,7 +28,402 @@
 
   <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
-  
+  <style>
+  /* ============================
+   Recurring Section Wrapper
+============================ */
+.recurring-section {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #0f172a, #020617);
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+  color: #e5e7eb;
+}
+
+/* Header */
+.recurring-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.recurring-section .section-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Add Recurring Button */
+.add-recurring-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(34,197,94,0.35);
+  transition: all 0.2s ease;
+}
+
+.add-recurring-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(34,197,94,0.5);
+}
+
+/* ============================
+   Recurring Stats Cards
+============================ */
+.recurring-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.recurring-stat-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 1.2rem;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recurring-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+}
+
+.recurring-stat-card h4 {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin-bottom: 0.4rem;
+}
+
+.recurring-stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #64ffda;
+}
+
+/* ============================
+   Recurring List
+============================ */
+.recurring-list {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Individual Recurring Item */
+.recurring-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.recurring-item:hover {
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+}
+
+/* Left Info */
+.recurring-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.recurring-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff;
+}
+
+.recurring-meta {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* Amount */
+.recurring-amount {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.recurring-amount.expense {
+  color: #f87171;
+}
+
+.recurring-amount.income {
+  color: #4ade80;
+}
+
+/* Right Actions */
+.recurring-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.recurring-actions button {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.recurring-actions button:hover {
+  background: rgba(255,255,255,0.18);
+  transform: scale(1.05);
+}
+
+/* ============================
+   Recurring Modal (FIXED)
+============================ */
+.recurring-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.recurring-modal-content {
+  background: #0f172a;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+  overflow: hidden;
+  color: #e5e7eb;
+}
+
+.recurring-modal-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  padding: 1rem 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recurring-modal-header h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.recurring-form {
+  padding: 1.2rem;
+}
+
+/* Modal Buttons */
+.modal-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.modal-actions .btn-cancel {
+  background: #1f2933;
+  color: #e5e7eb;
+}
+
+.modal-actions .btn-submit {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+
+    /* ================================
+   Bulk Edit Modal Overlay
+================================ */
+.bulk-edit-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: none;              /* Toggle with JS */
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+/* ================================
+   Modal Container
+================================ */
+.bulk-edit-content {
+  background: #ffffff;
+  width: 100%;
+  max-width: 460px;
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: bulkModalFadeIn 0.25s ease;
+}
+
+/* ================================
+   Header
+================================ */
+.bulk-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+  color: #ffffff;
+}
+
+.bulk-edit-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-modal {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 26px;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.close-modal:hover {
+  transform: scale(1.15);
+  opacity: 0.8;
+}
+
+/* ================================
+   Form Body
+================================ */
+#bulk-edit-form {
+  padding: 20px;
+}
+
+/* ================================
+   Form Groups
+================================ */
+.bulk-form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.bulk-form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+/* ================================
+   Select Inputs
+================================ */
+.bulk-form-select {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bulk-form-select:focus {
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
+  background: #ffffff;
+}
+
+/* ================================
+   Action Buttons
+================================ */
+.bulk-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-cancel,
+.btn-submit {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Cancel Button */
+.btn-cancel {
+  background: #f1f3f5;
+  color: #444;
+}
+
+.btn-cancel:hover {
+  background: #e2e6ea;
+  transform: translateY(-1px);
+}
+
+/* Submit Button */
+.btn-submit {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(67, 160, 71, 0.35);
+}
+
+.btn-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(67, 160, 71, 0.45);
+}
+
+/* ================================
+   Animation
+================================ */
+@keyframes bulkModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ================================
+   Mobile Responsive
+================================ */
+@media (max-width: 480px) {
+  .bulk-edit-content {
+    border-radius: 10px;
+  }
+
+  .bulk-edit-header h3 {
+    font-size: 16px;
+  }
+}
+
+  </style>
   <!-- Clerk Authentication SDK -->
  <script
     async
@@ -830,59 +1225,7 @@
       </div>
     </section>
 
-    <!-- Bulk Action Bar -->
-    <div id="bulk-action-bar" class="bulk-action-bar">
-      <span id="selected-count" class="selected-count">1 selected</span>
-      <div class="bulk-actions">
-        <button id="bulk-edit-btn" class="bulk-btn">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button id="bulk-delete-btn" class="bulk-btn delete-btn">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      </div>
-    </div>
-
-    <!-- Bulk Edit Modal -->
-    <div id="bulk-edit-modal" class="bulk-edit-modal">
-      <div class="bulk-edit-content">
-        <div class="bulk-edit-header">
-          <h3>Bulk Edit</h3>
-          <button id="close-bulk-modal" class="close-modal">&times;</button>
-        </div>
-        <form id="bulk-edit-form">
-          <div class="bulk-form-group">
-            <label for="bulk-category">Category</label>
-            <select id="bulk-category" class="bulk-form-select">
-              <option value="">No Change</option>
-              <option value="food">🍽️ Food & Dining</option>
-              <option value="transport">🚗 Transportation</option>
-              <option value="shopping">🛒 Shopping</option>
-              <option value="entertainment">🎬 Entertainment</option>
-              <option value="utilities">💡 Utilities</option>
-              <option value="healthcare">🏥 Healthcare</option>
-              <option value="education">📚 Education</option>
-              <option value="travel">✈️ Travel</option>
-              <option value="salary">💼 Salary</option>
-              <option value="investment">📈 Investment</option>
-              <option value="other">📋 Other</option>
-            </select>
-          </div>
-          <div class="bulk-form-group">
-            <label for="bulk-type">Type</label>
-            <select id="bulk-type" class="bulk-form-select">
-              <option value="">No Change</option>
-              <option value="income">💰 Income</option>
-              <option value="expense">💸 Expense</option>
-            </select>
-          </div>
-          <div class="bulk-modal-actions">
-            <button type="button" class="btn-cancel" id="cancel-bulk-edit">Cancel</button>
-            <button type="submit" class="btn-submit">Update All</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    
 
     <div class="settings-card">
       <h4><i class="fas fa-user-friends"></i> Members</h4>
@@ -1216,5 +1559,172 @@
       }
     });
   </script>
+  <script>
+/* ================================
+   RECURRING EXPENSES FIXED LOGIC
+================================ */
+
+let recurringItems = JSON.parse(localStorage.getItem('recurringItems')) || [];
+
+// Elements
+const addRecurringBtn = document.getElementById('add-recurring-btn');
+const recurringModal = document.getElementById('recurring-modal');
+const recurringForm = document.getElementById('recurring-form');
+const recurringList = document.getElementById('recurring-list');
+const recurringStats = document.getElementById('recurring-stats');
+const closeRecurringModal = document.getElementById('recurring-modal-close');
+const cancelRecurringBtn = document.getElementById('recurring-cancel-btn');
+
+// Open modal
+addRecurringBtn?.addEventListener('click', () => {
+  recurringForm.reset();
+  document.getElementById('recurring-id').value = '';
+  recurringModal.style.display = 'flex';
+});
+
+// Close modal
+closeRecurringModal?.addEventListener('click', () => {
+  recurringModal.style.display = 'none';
+});
+
+cancelRecurringBtn?.addEventListener('click', () => {
+  recurringModal.style.display = 'none';
+});
+
+// Save recurring
+recurringForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const id = document.getElementById('recurring-id').value || Date.now().toString();
+
+  const item = {
+    id,
+    description: document.getElementById('recurring-description').value,
+    amount: parseFloat(document.getElementById('recurring-amount').value),
+    category: document.getElementById('recurring-category').value,
+    type: document.getElementById('recurring-type').value,
+    frequency: document.getElementById('recurring-frequency').value,
+    startDate: document.getElementById('recurring-start-date').value,
+    nextDue: document.getElementById('recurring-next-due').value,
+    endDate: document.getElementById('recurring-end-date').value,
+    reminderDays: parseInt(document.getElementById('recurring-reminder-days').value || 0),
+    autoCreate: document.getElementById('recurring-auto-create').checked,
+    notes: document.getElementById('recurring-notes').value
+  };
+
+  const index = recurringItems.findIndex(r => r.id === id);
+
+  if (index > -1) {
+    recurringItems[index] = item; // Edit
+  } else {
+    recurringItems.push(item); // Add
+  }
+
+  localStorage.setItem('recurringItems', JSON.stringify(recurringItems));
+  recurringModal.style.display = 'none';
+
+  renderRecurring();
+});
+
+// Render stats + list
+function renderRecurring() {
+  recurringList.innerHTML = '';
+  recurringStats.innerHTML = '';
+
+  if (recurringItems.length === 0) {
+    recurringList.innerHTML = `<div class="empty-placeholder">No recurring expenses added yet.</div>`;
+    return;
+  }
+
+  let totalMonthly = 0;
+
+  recurringItems.forEach(item => {
+    totalMonthly += normalizeToMonthly(item.amount, item.frequency);
+
+    const div = document.createElement('div');
+    div.className = 'recurring-item-card';
+    div.innerHTML = `
+      <div class="recurring-item-header">
+        <h4>${item.description}</h4>
+        <span class="badge">${item.frequency}</span>
+      </div>
+      <div class="recurring-item-body">
+        <p><strong>Amount:</strong> ₹${item.amount.toFixed(2)}</p>
+        <p><strong>Next Due:</strong> ${item.nextDue}</p>
+        <p><strong>Category:</strong> ${item.category}</p>
+        <p><strong>Type:</strong> ${item.type}</p>
+      </div>
+      <div class="recurring-item-actions">
+        <button onclick="editRecurring('${item.id}')" class="btn-secondary">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button onclick="deleteRecurring('${item.id}')" class="btn-danger">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    `;
+    recurringList.appendChild(div);
+  });
+
+  // Stats
+  recurringStats.innerHTML = `
+    <div class="stat-card">
+      <h4>Total Recurring</h4>
+      <p>${recurringItems.length}</p>
+    </div>
+    <div class="stat-card">
+      <h4>Est. Monthly</h4>
+      <p>₹${totalMonthly.toFixed(2)}</p>
+    </div>
+  `;
+}
+
+// Edit
+window.editRecurring = function (id) {
+  const item = recurringItems.find(r => r.id === id);
+  if (!item) return;
+
+  document.getElementById('recurring-id').value = item.id;
+  document.getElementById('recurring-description').value = item.description;
+  document.getElementById('recurring-amount').value = item.amount;
+  document.getElementById('recurring-category').value = item.category;
+  document.getElementById('recurring-type').value = item.type;
+  document.getElementById('recurring-frequency').value = item.frequency;
+  document.getElementById('recurring-start-date').value = item.startDate;
+  document.getElementById('recurring-next-due').value = item.nextDue;
+  document.getElementById('recurring-end-date').value = item.endDate;
+  document.getElementById('recurring-reminder-days').value = item.reminderDays;
+  document.getElementById('recurring-auto-create').checked = item.autoCreate;
+  document.getElementById('recurring-notes').value = item.notes;
+
+  recurringModal.style.display = 'flex';
+};
+
+// Delete
+window.deleteRecurring = function (id) {
+  if (!confirm('Delete this recurring item?')) return;
+
+  recurringItems = recurringItems.filter(r => r.id !== id);
+  localStorage.setItem('recurringItems', JSON.stringify(recurringItems));
+  renderRecurring();
+};
+
+// Frequency to monthly normalization
+function normalizeToMonthly(amount, freq) {
+  switch (freq) {
+    case 'daily': return amount * 30;
+    case 'weekly': return amount * 4;
+    case 'biweekly': return amount * 2;
+    case 'monthly': return amount;
+    case 'quarterly': return amount / 3;
+    case 'yearly': return amount / 12;
+    default: return amount;
+  }
+}
+
+// Init
+renderRecurring();
+</script>
+
 </body>
 </html>

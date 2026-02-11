@@ -211,3 +211,184 @@
   display: flex;
 
 }
+.recurring-item-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(100,255,218,0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.recurring-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.badge {
+  background: rgba(100,255,218,0.15);
+  color: #64ffda;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+/* ================================
+   RECURRING EXPENSES – UI POLISH
+================================ */
+
+/* Recurring Section Wrapper */
+.recurring-section {
+  background: #0f172a;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* Header */
+.recurring-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.recurring-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recurring-header h2 i {
+  color: #64ffda;
+}
+
+/* Stats Row */
+#recurring-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+#recurring-stats .stat-card {
+  background: #020617;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(100,255,218,0.12);
+  text-align: center;
+}
+
+#recurring-stats .stat-card h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+#recurring-stats .stat-card p {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #64ffda;
+}
+
+/* Recurring List Grid */
+#recurring-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* Recurring Item Card */
+.recurring-item-card {
+  background: linear-gradient(180deg, #020617, #020617);
+  border-radius: 14px;
+  padding: 1.1rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recurring-item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+
+/* Card Header */
+.recurring-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.recurring-item-header h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+/* Frequency Badge */
+.recurring-item-header .badge {
+  background: rgba(100,255,218,0.15);
+  color: #64ffda;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Card Body */
+.recurring-item-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: #d1d5db;
+  margin-bottom: 0.75rem;
+}
+
+.recurring-item-body p strong {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+/* Amount Highlight */
+.recurring-item-body .amount {
+  grid-column: span 2;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #34d399; /* green */
+}
+
+/* Actions */
+.recurring-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.recurring-item-actions button {
+  flex: 1;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.5rem;
+}
+
+/* Empty State */
+#recurring-list .empty-placeholder {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 12px;
+}
