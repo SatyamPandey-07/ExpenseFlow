@@ -176,6 +176,15 @@ const transactionSchema = new mongoose.Schema({
             timestamp: Date,
             data: mongoose.Schema.Types.Mixed
         }]
+    },
+    // NEW: Features for Event Sourcing
+    lastEventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'FinancialEvent'
+    },
+    isEventSourced: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true
