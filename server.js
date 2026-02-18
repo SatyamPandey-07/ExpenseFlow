@@ -45,6 +45,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(require('./middleware/encryptionInterceptor'));
+app.use(require('./middleware/validationInterceptor'));
+
 
 /* ================================
    DATABASE CONNECTION
@@ -94,6 +96,8 @@ app.use('/api/workspaces', require('./routes/workspaces'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/forecasting', require('./routes/forecasting'));
+app.use('/api/governance', require('./routes/governance'));
+
 
 
 
