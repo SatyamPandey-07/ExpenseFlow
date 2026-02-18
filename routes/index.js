@@ -25,8 +25,10 @@ const budgetRoutes = require('./budgets');
 const envelopeRoutes = require('./envelopes');
 const goalRoutes = require('./goals');
 const debtRoutes = require('./debts');
+const reimbursementRoutes = require('./reimbursements');
 const analyticsRoutes = require('./analytics');
 const currencyRoutes = require('./currency');
+
 
 
 // Import rate limiters from config/middleware
@@ -67,7 +69,11 @@ function configureRoutes(app) {
   // Debt routes
   app.use('/api/debts', expenseLimiter, require('./debts'));
 
+  // Reimbursement routes
+  app.use('/api/reimbursements', expenseLimiter, require('./reimbursements'));
+
   // Analytics routes
+
 
   app.use('/api/analytics', require('./analytics'));
 
