@@ -47,9 +47,10 @@ const transactionSchema = new mongoose.Schema({
         min: 0
     },
     category: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Taxonomy',
         required: true,
-        enum: ['food', 'transport', 'entertainment', 'utilities', 'healthcare', 'shopping', 'other', 'salary', 'freelance', 'investment', 'transfer']
+        index: true
     },
     type: {
         type: String,
