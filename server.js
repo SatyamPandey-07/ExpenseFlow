@@ -8,6 +8,11 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
+// Initialize logging context at the very start
+app.use(require('./middleware/requestCorrelation'));
+app.use(require('./middleware/httpLogger'));
+
+
 /* ================================
    SECURITY
 ================================ */
@@ -72,6 +77,8 @@ async function connectDatabase() {
         require('./jobs/forecastRetrainer').start();
         require('./jobs/taxonomyAuditor').start();
         require('./jobs/conflictCleaner').start();
+        require('./jobs/logRotator').start();
+
 
 
         console.log('✓ Cron jobs initialized');
@@ -99,6 +106,10 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/forecasting', require('./routes/forecasting'));
 app.use('/api/governance', require('./routes/governance'));
+app.use('/api/taxonomy', require('./routes/taxonomy'));
+app.use('/api/sync', require('./routes/syncManager'));
+app.use('/api/telemetry', require('./routes/telemetry'));
+
 
 
 

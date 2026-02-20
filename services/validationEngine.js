@@ -1,6 +1,8 @@
 const remediationRules = require('../utils/remediationRules');
 const ValidationLog = require('../models/ValidationLog');
 const crypto = require('crypto');
+const logger = require('../utils/structuredLogger');
+
 
 
 /**
@@ -80,7 +82,7 @@ class ValidationEngine {
             };
 
         } catch (error) {
-            console.error('[ValidationEngine] Pipeline failure:', error);
+            logger.error('Validation pipeline failure', { error: error.message, stack: error.stack });
             throw error;
         }
     }
