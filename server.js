@@ -8,9 +8,9 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
-// Initialize logging context at the very start
-app.use(require('./middleware/requestCorrelation'));
-app.use(require('./middleware/httpLogger'));
+// Initialize Asynchronous Listeners (Issue #711)
+require('./listeners/EmailListeners').init();
+require('./listeners/AuditListeners').init();
 
 
 /* ================================

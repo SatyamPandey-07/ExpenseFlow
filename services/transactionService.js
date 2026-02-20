@@ -6,6 +6,9 @@ const budgetService = require('./budgetService');
 const approvalService = require('./approvalService');
 const intelligenceService = require('./intelligenceService');
 const eventDispatcher = require('./eventDispatcher');
+const AppEventBus = require('../utils/AppEventBus');
+const EVENTS = require('../config/eventRegistry');
+
 
 class TransactionService {
     /**
@@ -144,6 +147,10 @@ class TransactionService {
         const amountForImpact = transaction.convertedAmount || transaction.amount;
 
         eventDispatcher.emit('transaction:validated', { transaction, userId });
+
+        // New Asynchronous Event Bus Call
+        AppEventBus.publish(EVENTS.TRANSACTION.CREATED, transaction);
+
 
         // Intelligence & Scoring (Non-blocking)
         setImmediate(async () => {

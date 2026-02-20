@@ -11,6 +11,9 @@ const DeviceFingerprint = require('../models/DeviceFingerprint');
 const { captureDeviceFingerprint, generateFingerprint } = require('../middleware/deviceFingerprint');
 const auth = require('../middleware/auth');
 const { AuthSchemas, validateRequest } = require('../middleware/inputValidator');
+const AppEventBus = require('../utils/AppEventBus');
+const EVENTS = require('../config/eventRegistry');
+
 const {
   loginLimiter,
   registerLimiter,
@@ -58,10 +61,9 @@ router.post('/register', registerLimiter, validateRequest(AuthSchemas.register),
     status: 'success'
   });
 
-  // Send welcome email (non-blocking)
-  emailService.sendWelcomeEmail(user).catch(err =>
-    console.error('Welcome email failed:', err)
-  );
+  // Decoupled Event Trigger - Replaces direct emailService call
+  AppEventBus.publish(EVENTS.USER.REGISTERED, user);
+
 
   // Capture Device Fingerprint
   try {
@@ -593,9 +595,9 @@ router.post('/security/change-password', auth, async (req, res) => {
       // Don't fail password change if alerting fails
     }
 
-    res.json({ 
-      success: true, 
-      message: 'Password changed successfully. Other sessions have been logged out.' 
+    res.json({
+      success: true,
+      message: 'Password changed successfully. Other sessions have been logged out.'
     });
   } catch (error) {
     console.error('Change password error:', error);
