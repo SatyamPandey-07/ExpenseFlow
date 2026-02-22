@@ -177,13 +177,12 @@ const transactionSchema = new mongoose.Schema({
     },
     syncMetadata: {
         lastDeviceId: String,
+        lastModifiedByDevice: String,
+        checksum: String,
         isDeleted: { type: Boolean, default: false },
         deletedAt: Date,
-        conflicts: [{
-            deviceId: String,
-            timestamp: Date,
-            data: mongoose.Schema.Types.Mixed
-        }]
+        syncStatus: { type: String, enum: ['synced', 'pending', 'conflict'], default: 'synced' },
+        conflictsCount: { type: Number, default: 0 }
     },
     // NEW: Features for Event Sourcing
     lastEventId: {
