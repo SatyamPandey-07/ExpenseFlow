@@ -463,7 +463,11 @@ if (redisSub) {
 if (process.env.NODE_ENV !== 'production') {
   require('./jobs/entropyPruner').start(); // Issue #868: Metadata management
   require('./jobs/nightlyProver').start(); // Issue #867: ZK-Compliance Proving
+  require('./jobs/dnaAttestation').start(); // Issue #866: Genetic Money Integrity
 }
+
+// Lineage & Eligibility Middleware
+app.use(require('./middleware/lineageGuard')); // Issue #866: DNA-Based Eligibility check
 
 app.use('/api/correlation', crossSessionCorrelationRoutes); // Issue #879: Cross-Session Threat Correlation
 // Routes

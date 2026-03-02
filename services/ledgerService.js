@@ -228,13 +228,38 @@ class LedgerService {
         if (expectedHash !== proof.aggregatedHash) {
             return { valid: false, reason: 'Aggregated signature hash mismatch' };
         }
-
         return {
             valid: true,
             operationId: proof.operationId,
             signerCount: proof.signerCount,
             quorumConfig: { m: proof.quorumM, n: proof.quorumN }
         };
+    }
+
+    /**
+     * Record a financial event with genetic money lineage DNA.
+     * Issue #866: Tracks 'Source-DNA' provenance in the immutable ledger.
+     */
+    async recordLineageEvent(entityId, eventType, payload, userId, workspaceId, lineageFragments) {
+        const crypto = require('crypto');
+
+        // Calculate a combined lineage provenance hash from all fragments
+        const lineageData = lineageFragments.map(f => `${f.sourceDna}:${f.provenanceHash}:${f.amountContributed}`).join('|');
+        const lineageProvenanceHash = crypto.createHash('sha256').update(lineageData).digest('hex');
+
+        return this.recordEvent(
+            entityId,
+            eventType,
+            {
+                ...payload,
+                lineageProvenanceHash,
+                fragments: lineageFragments
+            },
+            userId,
+            workspaceId,
+            null,
+            'LINEAGE_TRACKED_TRANSACTION'
+        );
     }
 }
 

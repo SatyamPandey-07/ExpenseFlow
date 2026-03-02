@@ -40,7 +40,13 @@ const treasuryNodeSchema = new mongoose.Schema({
         type: String,
         enum: ['ACTIVE', 'LOCKED', 'DEPLETED'],
         default: 'ACTIVE'
-    }
+    },
+    // Issue #866: Genetic DNA Tracking
+    dnaRestrictedBuckets: [{
+        sourceDna: { type: String, enum: ['VENTURE_CAPITAL', 'STATE_GRANT', 'REVENUE', 'LOAN', 'EQUITY'] },
+        amount: { type: Number, default: 0 },
+        isLocked: { type: Boolean, default: false }
+    }]
 }, {
     timestamps: true
 });
