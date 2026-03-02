@@ -84,7 +84,13 @@ class EncryptionService {
   async encrypt(data, purpose = 'userData', options = {}) {
     try {
       // Get encryption key for this purpose
-      const { keyId, key, version } = await kms.getEncryptionKey(purpose);
+      const { keyId, key, version, algorithm } = await kms.getEncryptionKey(purpose, {
+        tenantId: options.tenantId,
+        userId: options.userId,
+        actor: options.actor,
+        operation: 'encrypt'
+      });
+      const cipherAlgorithm = algorithm || this.algorithm;
       
       // Convert data to Buffer
       let plaintext;
@@ -100,7 +106,7 @@ class EncryptionService {
       const iv = crypto.randomBytes(this.ivLength);
       
       // Create cipher
-      const cipher = crypto.createCipheriv(this.algorithm, key, iv);
+      const cipher = crypto.createCipheriv(cipherAlgorithm, key, iv);
       
       // Add associated data for authentication (optional)
       if (options.aad) {
@@ -119,7 +125,7 @@ class EncryptionService {
       // Package encrypted data with metadata
       const encryptedPackage = {
         version: '1.0',
-        algorithm: this.algorithm,
+        algorithm: cipherAlgorithm,
         keyId,
         keyVersion: version,
         iv: iv.toString('base64'),
@@ -165,7 +171,11 @@ class EncryptionService {
       // Get decryption key (supports key versioning)
       const { key } = await kms.getKeyById(
         encryptedPackage.keyId,
-        encryptedPackage.keyVersion
+        encryptedPackage.keyVersion,
+        {
+          actor: options.actor,
+          operation: 'decrypt'
+        }
       );
       
       // Extract components
@@ -174,7 +184,8 @@ class EncryptionService {
       const ciphertext = Buffer.from(encryptedPackage.ciphertext, 'base64');
       
       // Create decipher
-      const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
+      const decryptAlgorithm = encryptedPackage.algorithm || this.algorithm;
+      const decipher = crypto.createDecipheriv(decryptAlgorithm, key, iv);
       decipher.setAuthTag(authTag);
       
       // Add associated data if present
@@ -213,19 +224,76 @@ class EncryptionService {
   }
 
   /**
+   * Decrypt and automatically migrate payload to latest active key version when stale
+   * @param {string|object} encryptedData - Encrypted package
+   * @param {string} purpose - Encryption purpose
+   * @param {object} options - decrypt/encrypt context options
+   * @returns {object} - { data, reEncrypted, encryptedData }
+   */
+  async decryptAndReEncryptIfNeeded(encryptedData, purpose = 'userData', options = {}) {
+    let encryptedPackage;
+    if (typeof encryptedData === 'string') {
+      const packageJson = Buffer.from(encryptedData, 'base64').toString('utf8');
+      encryptedPackage = JSON.parse(packageJson);
+    } else {
+      encryptedPackage = encryptedData;
+    }
+
+    const decrypted = await this.decrypt(encryptedPackage, options);
+
+    const activeKey = await kms.getEncryptionKey(purpose, {
+      tenantId: options.tenantId,
+      userId: options.userId,
+      actor: options.actor,
+      operation: 'encrypt'
+    });
+
+    const stale = encryptedPackage.keyId !== activeKey.keyId ||
+      encryptedPackage.keyVersion !== activeKey.version;
+
+    if (!stale) {
+      return {
+        data: decrypted,
+        reEncrypted: false,
+        encryptedData: typeof encryptedData === 'string'
+          ? encryptedData
+          : Buffer.from(JSON.stringify(encryptedPackage)).toString('base64')
+      };
+    }
+
+    const migrated = await this.encrypt(decrypted, purpose, {
+      ...options,
+      returnObject: false
+    });
+
+    return {
+      data: decrypted,
+      reEncrypted: true,
+      previousKeyId: encryptedPackage.keyId,
+      activeKeyId: activeKey.keyId,
+      encryptedData: migrated
+    };
+  }
+
+  /**
    * Encrypt specific fields in an object
    * @param {object} obj - Object with fields to encrypt
    * @param {array} fields - Field names to encrypt
    * @param {string} purpose - Encryption purpose
    * @returns {object} - Object with encrypted fields
    */
-  async encryptFields(obj, fields, purpose = 'userData') {
+  async encryptFields(obj, fields, purpose = 'userData', options = {}) {
     const result = { ...obj };
     const encryptedFieldsMetadata = {};
     
     for (const field of fields) {
       if (obj[field] !== undefined && obj[field] !== null) {
-        const encrypted = await this.encrypt(obj[field], purpose, { returnObject: true });
+        const encrypted = await this.encrypt(obj[field], purpose, {
+          returnObject: true,
+          actor: options.actor,
+          tenantId: options.tenantId,
+          userId: options.userId
+        });
         result[field] = encrypted.ciphertext;
         
         // Store metadata separately
@@ -364,7 +432,12 @@ class EncryptionService {
    * @returns {object} - Encrypted file package
    */
   async encryptFile(fileBuffer, purpose = 'documents', metadata = {}) {
-    const encrypted = await this.encrypt(fileBuffer, purpose, { returnObject: true });
+    const encrypted = await this.encrypt(fileBuffer, purpose, {
+      returnObject: true,
+      actor: metadata.actor,
+      tenantId: metadata.tenantId,
+      userId: metadata.userId
+    });
     
     return {
       ...encrypted,

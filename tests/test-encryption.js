@@ -166,6 +166,36 @@ async function runTests() {
     const health = await kms.getKeyHealthMetrics();
     assert(health.active > 0, 'Active keys exist');
     assert(health.healthStatus, 'Health status available');
+
+    // Validate algorithm governance and strength verification
+    const algoStatus = kms.getAlgorithmStatus();
+    assert(Array.isArray(algoStatus.supportedAlgorithms), 'Supported algorithms available');
+
+    const strength = kms.verifyEncryptionStrength();
+    assert(['strong', 'moderate', 'weak'].includes(strength.status), 'Encryption strength status returned');
+
+    // Validate hierarchical derivation
+    const derived = await kms.deriveScopedKey({
+      purpose: 'test-purpose',
+      tenantId: 'tenant-918',
+      userId: 'user-918',
+      context: 'invoice-field'
+    });
+    assert(derived.parentKeyId, 'Derived key contains parent key reference');
+    assert(Buffer.isBuffer(derived.key), 'Derived key material is returned as Buffer');
+
+    // Validate key rotation + decrypt auto-migration
+    const oldEncrypted = await encryptionService.encrypt('rotate-me', 'test-purpose');
+    const rotation = await kms.rotateKey('test-purpose');
+    assert(rotation.newKeyId, 'Key rotated with new key id');
+
+    const migratedDecrypt = await encryptionService.decryptAndReEncryptIfNeeded(oldEncrypted, 'test-purpose');
+    assert(migratedDecrypt.data === 'rotate-me', 'Decrypt after rotation still returns original data');
+    assert(migratedDecrypt.reEncrypted === true, 'Old ciphertext auto-migrated to active key');
+
+    // Validate audit trail generation
+    const auditEvents = await kms.listAuditTrail({ purpose: 'test-purpose' }, 20);
+    assert(auditEvents.length > 0, 'KMS audit trail entries exist');
     
     // Test 6: Mongoose Schema Integration
     section('Test 6: Mongoose Schema with Auto-Encryption');
