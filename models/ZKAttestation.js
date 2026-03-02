@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * ZKAttestation Model
- * Issue #867: Storing public parameters and proof roots for Zero-Knowledge audits.
+ * Issue #899: Storing public parameters and proof roots for Zero-Knowledge audits.
  * Allows trustless verification that a transaction followed policy without revealing PII.
  */
 const zkAttestationSchema = new mongoose.Schema({
@@ -10,6 +10,7 @@ const zkAttestationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Transaction',
         required: true,
+        unique: true,
         index: true
     },
     workspaceId: {
@@ -18,36 +19,54 @@ const zkAttestationSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    proofType: {
+    verificationKeyId: {
         type: String,
-        enum: ['RANGE_PROOF', 'MEMBERSHIP_PROOF', 'CONSISTENCY_PROOF'],
         required: true
     },
-    proofData: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true
-    }, // The actual SNARK proof object
     publicSignals: {
         type: [String],
+        required: true,
         default: []
-    }, // Public parameters for verification
+    },
+    proofHash: {
+        type: String,
+        required: true
+    },
     complianceRoot: {
         type: String,
         required: true
-    }, // Merkle root of the compliance state at time of proof
-    verifiedAt: {
-        type: Date
     },
-    status: {
+    proofStatus: {
         type: String,
-        enum: ['PENDING', 'GENERATED', 'VERIFIED', 'FAILED'],
-        default: 'PENDING'
+        enum: ['pending', 'generated', 'verified', 'rejected'],
+        default: 'pending',
+        required: true
+    },
+    generatedAt: {
+        type: Date,
+        default: Date.now,
+        immutable: true
     }
 }, {
     timestamps: true
 });
 
-// Index for fast audit lookups
-zkAttestationSchema.index({ workspaceId: 1, createdAt: -1 });
+// Index for fast lookups
+zkAttestationSchema.index({ transactionId: 1 });
+
+// Prevent mutation after verification
+zkAttestationSchema.pre('save', function(next) {
+    if (this.isModified() && this.proofStatus === 'verified') {
+        // Allow only status change to rejected if needed, but prevent other changes
+        const modifiedPaths = this.modifiedPaths();
+        const allowedModifications = ['proofStatus'];
+        for (const path of modifiedPaths) {
+            if (!allowedModifications.includes(path)) {
+                return next(new Error('Attestation cannot be modified after verification'));
+            }
+        }
+    }
+    next();
+});
 
 module.exports = mongoose.model('ZKAttestation', zkAttestationSchema);
