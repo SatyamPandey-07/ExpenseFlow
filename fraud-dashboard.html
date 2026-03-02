@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fraud Detection & Risk Management - ExpenseFlow</title>
+    <link rel="stylesheet" href="fraud-dashboard.css">
+</head>
+<body>
+    <div class="fraud-container">
+        <!-- Header -->
+        <header class="fraud-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>🔐 Fraud Detection & Risk Management</h1>
+                    <p>AI-Powered Behavioral Analysis & Anomaly Detection</p>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-box">
+                        <span class="stat-label">Risk Level</span>
+                        <span class="stat-value" id="system-risk-level">LOW</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Alerts Today</span>
+                        <span class="stat-value" id="alerts-count">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Cases Open</span>
+                        <span class="stat-value" id="cases-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="fraud-nav">
+            <button class="nav-btn active" data-tab="overview">📊 Overview</button>
+            <button class="nav-btn" data-tab="detection">🎯 Detection</button>
+            <button class="nav-btn" data-tab="behavioral">👤 Behavioral</button>
+            <button class="nav-btn" data-tab="vendors">🏢 Vendors</button>
+            <button class="nav-btn" data-tab="anomalies">⚠️ Anomalies</button>
+            <button class="nav-btn" data-tab="investigations">🔍 Investigations</button>
+            <button class="nav-btn" data-tab="receipts">📸 Receipts</button>
+            <button class="nav-btn" data-tab="collusion">🕸️ Collusion</button>
+            <button class="nav-btn" data-tab="analytics">📈 Analytics</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="fraud-main">
+
+            <!-- Overview Tab -->
+            <section id="overview-tab" class="tab-content active">
+                <div class="overview-grid">
+                    <!-- Risk Score Summary -->
+                    <div class="card risk-summary">
+                        <h3>Fraud Risk Summary</h3>
+                        <div class="risk-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 200 100">
+                                <defs>
+                                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+                                        <stop offset="50%" style="stop-color:#fbbf24;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 20 80 A 60 60 0 0 1 180 80" fill="none" stroke="url(#gaugeGradient)" stroke-width="8" stroke-linecap="round"/>
+                                <text x="100" y="95" text-anchor="middle" font-size="24" font-weight="bold" id="risk-score">25%</text>
+                            </svg>
+                        </div>
+                        <div class="risk-breakdown">
+                            <div class="risk-item">
+                                <span>Behavioral Anomalies</span>
+                                <meter value="15" max="100"></meter>
+                                <span class="risk-value">15%</span>
+                            </div>
+                            <div class="risk-item">
+                                <span>Expense Patterns</span>
+                                <meter value="20" max="100"></meter>
+                                <span class="risk-value">20%</span>
+                            </div>
+                            <div class="risk-item">
+                                <span>Vendor Risk</span>
+                                <meter value="10" max="100"></meter>
+                                <span class="risk-value">10%</span>
+                            </div>
+                            <div class="risk-item">
+                                <span>Image Forensics</span>
+                                <meter value="5" max="100"></meter>
+                                <span class="risk-value">5%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Real-Time Alerts -->
+                    <div class="card alerts-feed">
+                        <h3>🚨 Real-Time Alerts</h3>
+                        <div class="alerts-container" id="alerts-container">
+                            <div class="no-alerts">No alerts at this time</div>
+                        </div>
+                    </div>
+
+                    <!-- Model Performance -->
+                    <div class="card model-performance">
+                        <h3>Model Performance</h3>
+                        <div class="metric">
+                            <span class="metric-label">Detection Accuracy</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" style="width: 94%"></div>
+                            </div>
+                            <span class="metric-value">94%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">True Positive Rate</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" style="width: 91%"></div>
+                            </div>
+                            <span class="metric-value">91%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">False Positive Rate</span>
+                            <div class="metric-bar alert">
+                                <div class="metric-fill" style="width: 3%"></div>
+                            </div>
+                            <span class="metric-value">3%</span>
+                        </div>
+                    </div>
+
+                    <!-- Investigation Status -->
+                    <div class="card investigation-status">
+                        <h3>Open Investigations</h3>
+                        <div id="investigations-summary" class="status-summary">
+                            <div class="status-item">
+                                <span>🔴 High Priority</span>
+                                <strong id="high-priority-count">0</strong>
+                            </div>
+                            <div class="status-item">
+                                <span>🟡 Medium Priority</span>
+                                <strong id="medium-priority-count">0</strong>
+                            </div>
+                            <div class="status-item">
+                                <span>🟢 Low Priority</span>
+                                <strong id="low-priority-count">0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Detection Tab -->
+            <section id="detection-tab" class="tab-content">
+                <div class="detection-grid">
+                    <!-- Fraud Detection Config -->
+                    <div class="card detection-config">
+                        <h3>Detection Settings</h3>
+                        <div class="form-group">
+                            <label>Detection Sensitivity</label>
+                            <input type="range" id="sensitivity-slider" min="0" max="100" value="50">
+                            <span id="sensitivity-value">50%</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Alert Threshold (Confidence)</label>
+                            <input type="range" id="threshold-slider" min="0" max="100" value="75">
+                            <span id="threshold-value">75%</span>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-investigation" checked>
+                                Auto-create investigations for high-risk alerts
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="model-learning" checked>
+                                Enable continuous model learning
+                            </label>
+                        </div>
+                        <button class="btn btn-primary" id="train-model-btn">🧠 Retrain Model</button>
+                    </div>
+
+                    <!-- Active Detection Processes -->
+                    <div class="card active-detections">
+                        <h3>Active Detection Processes</h3>
+                        <div class="process-list" id="process-list">
+                            <div class="process-item">
+                                <span class="process-name">Isolation Forest</span>
+                                <span class="process-status active">Active</span>
+                            </div>
+                            <div class="process-item">
+                                <span class="process-name">Autoencoder Neural Network</span>
+                                <span class="process-status active">Active</span>
+                            </div>
+                            <div class="process-item">
+                                <span class="process-name">Behavioral Pattern Analysis</span>
+                                <span class="process-status active">Active</span>
+                            </div>
+                            <div class="process-item">
+                                <span class="process-name">Network Analysis (Collusion)</span>
+                                <span class="process-status active">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Detections -->
+                    <div class="card detections-list">
+                        <h3>Recent Detections</h3>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Risk Score</th>
+                                        <th>Timestamp</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detections-tbody">
+                                    <tr>
+                                        <td colspan="4" class="empty-state">No detections yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Behavioral Tab -->
+            <section id="behavioral-tab" class="tab-content">
+                <div class="behavioral-grid">
+                    <!-- Typing Pattern Analysis -->
+                    <div class="card typing-analysis">
+                        <h3>Typing Pattern Analysis</h3>
+                        <div class="biometric-meter">
+                            <canvas id="typing-pattern-canvas" width="300" height="150"></canvas>
+                        </div>
+                        <div class="analysis-stats">
+                            <div class="stat">
+                                <span>Keystroke Dynamics Score</span>
+                                <strong id="typing-score">98%</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Baseline Match</span>
+                                <strong id="baseline-match">98%</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Anomaly Risk</span>
+                                <strong id="typing-anomaly" class="safe">LOW</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mouse Movement Analysis -->
+                    <div class="card mouse-analysis">
+                        <h3>Mouse Movement Analysis</h3>
+                        <div class="biometric-meter">
+                            <canvas id="mouse-pattern-canvas" width="300" height="150"></canvas>
+                        </div>
+                        <div class="analysis-stats">
+                            <div class="stat">
+                                <span>Movement Pattern Score</span>
+                                <strong id="mouse-score">96%</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Velocity Baseline</span>
+                                <strong id="velocity-baseline">95%</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Anomaly Risk</span>
+                                <strong id="mouse-anomaly" class="safe">LOW</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Behavior -->
+                    <div class="card session-behavior">
+                        <h3>Current Session Behavior</h3>
+                        <div class="behavior-metrics">
+                            <div class="behavior-item">
+                                <span>Session Duration</span>
+                                <strong id="session-duration">12m 34s</strong>
+                            </div>
+                            <div class="behavior-item">
+                                <span>Click Count</span>
+                                <strong id="click-count">284</strong>
+                            </div>
+                            <div class="behavior-item">
+                                <span>Keystroke Count</span>
+                                <strong id="keystroke-count">1,247</strong>
+                            </div>
+                            <div class="behavior-item">
+                                <span>Scroll Events</span>
+                                <strong id="scroll-count">56</strong>
+                            </div>
+                            <div class="behavior-item">
+                                <span>Mouse Movements</span>
+                                <strong id="movement-count">3,421</strong>
+                            </div>
+                            <div class="behavior-item">
+                                <span>Tab Changes</span>
+                                <strong id="tab-changes">8</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Behavioral Timeline -->
+                    <div class="card behavioral-timeline">
+                        <h3>Behavioral Timeline</h3>
+                        <div id="behavior-timeline" class="timeline">
+                            <div class="timeline-event">
+                                <span class="timeline-time">14:32</span>
+                                <span class="timeline-desc">User logged in</span>
+                            </div>
+                            <div class="timeline-event">
+                                <span class="timeline-time">14:33</span>
+                                <span class="timeline-desc">Accessed expenses list</span>
+                            </div>
+                            <div class="timeline-event">
+                                <span class="timeline-time">14:35</span>
+                                <span class="timeline-desc">Added new expense</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vendors Tab -->
+            <section id="vendors-tab" class="tab-content">
+                <div class="vendors-grid">
+                    <!-- Vendor Risk Database -->
+                    <div class="card vendor-management">
+                        <h3>Vendor Risk Scoring</h3>
+                        <div class="vendor-search">
+                            <input type="text" id="vendor-search" placeholder="Search vendors...">
+                        </div>
+                        <div class="vendor-controls">
+                            <button class="btn btn-secondary" id="add-vendor-btn">➕ Add Vendor</button>
+                            <button class="btn btn-secondary" id="import-blacklist-btn">📥 Import Blacklist</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Vendor Name</th>
+                                        <th>Risk Score</th>
+                                        <th>Status</th>
+                                        <th>Last Verified</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vendors-tbody">
+                                    <tr>
+                                        <td colspan="5" class="empty-state">No vendors assessed yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Blacklist Management -->
+                    <div class="card blacklist-management">
+                        <h3>Blacklist & Suspicious Vendors</h3>
+                        <div class="list-container" id="blacklist-container">
+                            <div class="list-item blocked">
+                                <span class="vendor-name">Fraudulent Vendor Inc</span>
+                                <span class="vendor-reason">Confirmed fraud</span>
+                                <button class="btn-small btn-secondary">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vendor Risk Factors -->
+                    <div class="card risk-factors">
+                        <h3>Risk Factor Breakdown</h3>
+                        <div class="factor-list">
+                            <div class="factor">
+                                <span>Transaction Frequency</span>
+                                <meter value="30" max="100"></meter>
+                                <span class="factor-value">30%</span>
+                            </div>
+                            <div class="factor">
+                                <span>Average Amount Deviation</span>
+                                <meter value="45" max="100"></meter>
+                                <span class="factor-value">45%</span>
+                            </div>
+                            <div class="factor">
+                                <span>Payment Method Inconsistency</span>
+                                <meter value="20" max="100"></meter>
+                                <span class="factor-value">20%</span>
+                            </div>
+                            <div class="factor">
+                                <span>Geographic Anomalies</span>
+                                <meter value="15" max="100"></meter>
+                                <span class="factor-value">15%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Anomalies Tab -->
+            <section id="anomalies-tab" class="tab-content">
+                <div class="anomalies-grid">
+                    <!-- Expense Pattern Anomalies -->
+                    <div class="card expense-anomalies">
+                        <h3>Expense Pattern Anomalies</h3>
+                        <div class="anomaly-list" id="anomaly-list">
+                            <div class="anomaly-item warning">
+                                <div class="anomaly-header">
+                                    <span class="anomaly-type">Category Spike</span>
+                                    <span class="anomaly-score">87%</span>
+                                </div>
+                                <span class="anomaly-details">Travel expenses up 250% from baseline</span>
+                                <span class="anomaly-timestamp">Today at 14:15</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time-Based Anomalies -->
+                    <div class="card time-anomalies">
+                        <h3>Time-Based Anomalies</h3>
+                        <canvas id="time-anomaly-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Amount Anomalies -->
+                    <div class="card amount-anomalies">
+                        <h3>Amount Anomalies</h3>
+                        <canvas id="amount-anomaly-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Frequency Anomalies -->
+                    <div class="card frequency-anomalies">
+                        <h3>Frequency Anomalies</h3>
+                        <div class="frequency-analysis" id="frequency-analysis">
+                            <div class="freq-item">
+                                <span>Office Supplies</span>
+                                <meter value="75" max="100"></meter>
+                                <span class="deviation">↑ 150% above baseline</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Travel Policy Violations -->
+                    <div class="card travel-policy">
+                        <h3>Travel Policy Violations</h3>
+                        <div class="violation-list" id="violation-list">
+                            <div class="violation-item warning">
+                                <span class="policy-rule">Daily Hotel Limit: $300</span>
+                                <span class="violation-amount">$450 spent</span>
+                                <span class="violation-date">Mar 2, 2026</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Investigations Tab -->
+            <section id="investigations-tab" class="tab-content">
+                <div class="investigations-grid">
+                    <!-- Investigation Cases -->
+                    <div class="card investigations-list">
+                        <h3>Investigation Cases</h3>
+                        <div class="case-controls">
+                            <button class="btn btn-primary" id="new-case-btn">🔍 New Case</button>
+                            <select id="case-filter">
+                                <option value="">All Cases</option>
+                                <option value="open">Open</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="case-list" id="case-list">
+                            <div class="case-card">
+                                <div class="case-header">
+                                    <span class="case-id">Case #001</span>
+                                    <span class="case-priority high">🔴 High</span>
+                                </div>
+                                <span class="case-title">Duplicate Expense Detection</span>
+                                <span class="case-status">Open</span>
+                                <span class="case-date">Created: Mar 1, 2026</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Case Details -->
+                    <div class="card case-details">
+                        <h3>Case Details</h3>
+                        <div id="case-detail-panel" class="detail-panel">
+                            <p class="placeholder">Select a case to view details</p>
+                        </div>
+                    </div>
+
+                    <!-- Evidence Collector -->
+                    <div class="card evidence-collector">
+                        <h3>Automated Evidence Collection</h3>
+                        <div class="evidence-list" id="evidence-list">
+                            <div class="evidence-item">
+                                <span class="evidence-type">📧 Email Records</span>
+                                <span class="evidence-status collected">Collected</span>
+                            </div>
+                            <div class="evidence-item">
+                                <span class="evidence-type">📄 Receipt Images</span>
+                                <span class="evidence-status collected">Collected</span>
+                            </div>
+                            <div class="evidence-item">
+                                <span class="evidence-type">📊 Transaction History</span>
+                                <span class="evidence-status collecting">Collecting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Receipts Tab -->
+            <section id="receipts-tab" class="tab-content">
+                <div class="receipts-grid">
+                    <!-- Receipt Forensics -->
+                    <div class="card receipt-upload">
+                        <h3>Receipt Forensics Analysis</h3>
+                        <div class="upload-area" id="receipt-drop-zone">
+                            <input type="file" id="receipt-file" accept="image/*" multiple>
+                            <p>📸 Drag & drop receipts or click to upload</p>
+                        </div>
+                    </div>
+
+                    <!-- Forensic Results -->
+                    <div class="card forensic-results">
+                        <h3>Forensic Analysis Results</h3>
+                        <div class="forensic-list" id="forensic-list">
+                            <div class="forensic-item">
+                                <div class="forensic-header">
+                                    <span class="receipt-name">receipt_001.jpg</span>
+                                    <span class="authenticity-score safe">✓ Authentic</span>
+                                </div>
+                                <div class="forensic-details">
+                                    <div class="detail">
+                                        <span>Image Manipulation</span>
+                                        <strong>Not Detected</strong>
+                                    </div>
+                                    <div class="detail">
+                                        <span>Amount Tampering</span>
+                                        <strong>Not Detected</strong>
+                                    </div>
+                                    <div class="detail">
+                                        <span>Duplicate Detection</span>
+                                        <strong>Unique</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Metadata -->
+                    <div class="card metadata-analysis">
+                        <h3>Metadata Analysis</h3>
+                        <div id="metadata-panel" class="metadata-panel">
+                            <div class="metadata-item">
+                                <span class="field">Creation Date</span>
+                                <span class="value" id="metadata-date">-</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="field">Camera Info</span>
+                                <span class="value" id="metadata-camera">-</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="field">Modification History</span>
+                                <span class="value" id="metadata-history">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Collusion Tab -->
+            <section id="collusion-tab" class="tab-content">
+                <div class="collusion-grid">
+                    <!-- Collusion Network -->
+                    <div class="card collusion-network">
+                        <h3>Collusion Detection Network</h3>
+                        <canvas id="network-graph" width="500" height="400"></canvas>
+                    </div>
+
+                    <!-- Suspicious Connections -->
+                    <div class="card suspicious-connections">
+                        <h3>Suspicious Connection Patterns</h3>
+                        <div class="connection-list" id="connection-list">
+                            <div class="connection-item warning">
+                                <div class="parties">
+                                    <span>Employee A</span>
+                                    <span class="arrow">↔</span>
+                                    <span>Vendor X</span>
+                                </div>
+                                <span class="connection-strength">85% similarity</span>
+                                <span class="transactions">34 shared transactions</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Co-occurrence Analysis -->
+                    <div class="card cooccurrence-analysis">
+                        <h3>Co-Occurrence Analysis</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Entity Pair</th>
+                                    <th>Frequency</th>
+                                    <th>Risk Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cooccurrence-tbody">
+                                <tr>
+                                    <td colspan="3" class="empty-state">No suspicious patterns detected</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Tab -->
+            <section id="analytics-tab" class="tab-content">
+                <div class="analytics-grid">
+                    <!-- Fraud Trends -->
+                    <div class="card fraud-trends">
+                        <h3>Fraud Detection Trends</h3>
+                        <canvas id="trends-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Detection by Type -->
+                    <div class="card detection-types">
+                        <h3>Detection by Type</h3>
+                        <canvas id="detection-types-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Model Accuracy Over Time -->
+                    <div class="card model-accuracy">
+                        <h3>Model Accuracy Trend</h3>
+                        <canvas id="accuracy-trend-chart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="card summary-stats">
+                        <h3>Summary Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Expenses Analyzed</span>
+                                <strong id="total-analyzed">2,847</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Anomalies Detected</span>
+                                <strong id="total-anomalies">34</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">False Positives</span>
+                                <strong id="false-positives">2</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Confirmed Frauds</span>
+                                <strong id="confirmed-frauds">3</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Prevention Rate</span>
+                                <strong id="prevention-rate">91.2%</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Avg Detection Time</span>
+                                <strong id="detection-time">4.2 hours</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Add Vendor Modal -->
+    <div id="vendor-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Add/Edit Vendor</h2>
+            <form id="vendor-form">
+                <div class="form-group">
+                    <label>Vendor Name</label>
+                    <input type="text" id="vendor-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Vendor Category</label>
+                    <select id="vendor-category">
+                        <option>Software</option>
+                        <option>Hardware</option>
+                        <option>Services</option>
+                        <option>Travel</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Risk Status</label>
+                    <select id="vendor-status">
+                        <option>Trusted</option>
+                        <option>Pending Review</option>
+                        <option>Suspicious</option>
+                        <option>Blacklisted</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="vendor-notes"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Vendor</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Investigation Case Modal -->
+    <div id="case-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Create Investigation Case</h2>
+            <form id="case-form">
+                <div class="form-group">
+                    <label>Case Title</label>
+                    <input type="text" id="case-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="case-description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="case-priority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assigned To</label>
+                    <input type="email" id="case-assigned">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Case</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="behavioral-biometrics.js"></script>
+    <script src="duplicate-detector.js"></script>
+    <script src="vendor-risk-scorer.js"></script>
+    <script src="anomaly-detector.js"></script>
+    <script src="travel-policy-enforcer.js"></script>
+    <script src="receipt-forensics.js"></script>
+    <script src="collusion-detector.js"></script>
+    <script src="investigation-manager.js"></script>
+    <script src="fraud-database-connector.js"></script>
+    <script src="model-trainer.js"></script>
+    <script src="fraud-detector.js"></script>
+
+</body>
+</html>
