@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Compliance & Multi-Jurisdiction Filing - ExpenseFlow</title>
+    <link rel="stylesheet" href="tax-compliance.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏛️ Tax Compliance & Filing</h1>
+            <p>Multi-jurisdiction tax management and automated compliance</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="deductions">Deductions</button>
+            <button class="tab-btn" data-tab="mileage">Mileage</button>
+            <button class="tab-btn" data-tab="forms">Tax Forms</button>
+            <button class="tab-btn" data-tab="jurisdictions">Jurisdictions</button>
+            <button class="tab-btn" data-tab="audit">Audit Defense</button>
+            <button class="tab-btn" data-tab="collaboration">Collaboration</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="tax-summary-cards">
+                <div class="tax-card">
+                    <h3>Current Year Tax Liability</h3>
+                    <div class="amount" id="total-tax-liability">$0.00</div>
+                    <div class="tax-breakdown">
+                        <span>Federal: <span id="federal-tax">$0.00</span></span>
+                        <span>State: <span id="state-tax">$0.00</span></span>
+                        <span>Sales Tax: <span id="sales-tax">$0.00</span></span>
+                    </div>
+                </div>
+                <div class="tax-card">
+                    <h3>Total Deductions</h3>
+                    <div class="amount deduction" id="total-deductions">$0.00</div>
+                    <div class="tax-breakdown">
+                        <span>Business: <span id="business-deductions">$0.00</span></span>
+                        <span>Mileage: <span id="mileage-deductions">$0.00</span></span>
+                    </div>
+                </div>
+                <div class="tax-card">
+                    <h3>Estimated Refund/Payment</h3>
+                    <div class="amount" id="estimated-balance">$0.00</div>
+                    <div class="tax-breakdown">
+                        <span>Withheld: <span id="tax-withheld">$0.00</span></span>
+                        <span>Paid: <span id="tax-paid">$0.00</span></span>
+                    </div>
+                </div>
+                <div class="tax-card">
+                    <h3>Audit Risk Score</h3>
+                    <div class="audit-score" id="audit-risk-score">Low</div>
+                    <div class="risk-indicator">
+                        <div class="risk-bar" id="risk-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tax Year Selector -->
+            <div class="year-selector">
+                <label>Tax Year:</label>
+                <select id="tax-year">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                </select>
+                <button id="calculate-tax" class="btn-primary">Calculate Taxes</button>
+            </div>
+
+            <!-- Quarterly Payment Reminders -->
+            <div class="quarterly-reminders">
+                <h3>📅 Quarterly Estimated Tax Reminders</h3>
+                <div id="quarterly-schedule"></div>
+            </div>
+
+            <!-- Compliance Alerts -->
+            <div class="compliance-alerts">
+                <h3>⚠️ Compliance Alerts</h3>
+                <div id="alerts-container"></div>
+            </div>
+        </div>
+
+        <!-- Deductions Tab -->
+        <div id="deductions-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Expense Deduction Categorization</h2>
+                <button id="import-expenses" class="btn-primary">Import Expenses</button>
+            </div>
+
+            <div class="deduction-controls">
+                <div class="filter-group">
+                    <label>Category:</label>
+                    <select id="deduction-category-filter">
+                        <option value="all">All Categories</option>
+                        <option value="business">Business</option>
+                        <option value="personal">Personal</option>
+                        <option value="mixed">Mixed Use</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Deduction Type:</label>
+                    <select id="deduction-type-filter">
+                        <option value="all">All Types</option>
+                        <option value="office">Office Expenses</option>
+                        <option value="travel">Travel</option>
+                        <option value="meals">Meals & Entertainment</option>
+                        <option value="supplies">Supplies</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="professional">Professional Services</option>
+                        <option value="depreciation">Depreciation</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="deduction-recommendations">
+                <h3>💡 Deduction Maximization Recommendations</h3>
+                <div id="recommendations-list"></div>
+            </div>
+
+            <table class="deductions-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Deduction Type</th>
+                        <th>Business %</th>
+                        <th>Deductible Amount</th>
+                        <th>Receipt</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="deductions-table-body"></tbody>
+            </table>
+        </div>
+
+        <!-- Mileage Tab -->
+        <div id="mileage-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Mileage Tracking</h2>
+                <button id="add-mileage" class="btn-primary">+ Add Trip</button>
+            </div>
+
+            <div class="mileage-summary">
+                <div class="mileage-stat">
+                    <h4>Total Business Miles</h4>
+                    <div class="stat-value" id="total-business-miles">0</div>
+                </div>
+                <div class="mileage-stat">
+                    <h4>IRS Standard Rate</h4>
+                    <div class="stat-value" id="irs-rate">$0.67/mile</div>
+                </div>
+                <div class="mileage-stat">
+                    <h4>Total Mileage Deduction</h4>
+                    <div class="stat-value" id="mileage-deduction-total">$0.00</div>
+                </div>
+            </div>
+
+            <table class="mileage-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Purpose</th>
+                        <th>Miles</th>
+                        <th>Rate</th>
+                        <th>Deduction</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="mileage-table-body"></tbody>
+            </table>
+
+            <!-- Mileage Entry Modal -->
+            <div id="mileage-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Add Mileage Entry</h2>
+                    <form id="mileage-form">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="date" id="mileage-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>From:</label>
+                            <input type="text" id="mileage-from" placeholder="Starting location" required>
+                        </div>
+                        <div class="form-group">
+                            <label>To:</label>
+                            <input type="text" id="mileage-to" placeholder="Destination" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Miles:</label>
+                            <input type="number" id="mileage-distance" step="0.1" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Purpose:</label>
+                            <textarea id="mileage-purpose" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">Save Trip</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tax Forms Tab -->
+        <div id="forms-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Tax Form Generation</h2>
+            </div>
+
+            <div class="forms-grid">
+                <div class="form-card">
+                    <h3>📄 Form 1099-MISC</h3>
+                    <p>Non-employee compensation</p>
+                    <button class="btn-secondary generate-form" data-form="1099-MISC">Generate</button>
+                </div>
+                <div class="form-card">
+                    <h3>📄 Form W-2</h3>
+                    <p>Wage and Tax Statement</p>
+                    <button class="btn-secondary generate-form" data-form="W-2">Generate</button>
+                </div>
+                <div class="form-card">
+                    <h3>📄 Schedule C</h3>
+                    <p>Profit or Loss from Business</p>
+                    <button class="btn-secondary generate-form" data-form="Schedule-C">Generate</button>
+                </div>
+                <div class="form-card">
+                    <h3>📄 Form 1040</h3>
+                    <p>U.S. Individual Income Tax Return</p>
+                    <button class="btn-secondary generate-form" data-form="1040">Generate</button>
+                </div>
+                <div class="form-card">
+                    <h3>📄 VAT Return</h3>
+                    <p>Value Added Tax Return</p>
+                    <button class="btn-secondary generate-form" data-form="VAT">Generate</button>
+                </div>
+                <div class="form-card">
+                    <h3>📄 State Tax Forms</h3>
+                    <p>State-specific tax returns</p>
+                    <button class="btn-secondary generate-form" data-form="State">Generate</button>
+                </div>
+            </div>
+
+            <div class="generated-forms">
+                <h3>Generated Forms</h3>
+                <table class="forms-table">
+                    <thead>
+                        <tr>
+                            <th>Form Type</th>
+                            <th>Tax Year</th>
+                            <th>Generated Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forms-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Jurisdictions Tab -->
+        <div id="jurisdictions-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Multi-Jurisdiction Tax Rules</h2>
+                <button id="add-jurisdiction" class="btn-primary">+ Add Jurisdiction</button>
+            </div>
+
+            <div class="jurisdiction-list">
+                <div class="jurisdiction-card active">
+                    <h3>🇺🇸 United States - Federal</h3>
+                    <div class="jurisdiction-details">
+                        <p><strong>Tax Brackets:</strong> Progressive (10% - 37%)</p>
+                        <p><strong>Filing Deadline:</strong> April 15</p>
+                        <p><strong>Quarterly Payments:</strong> Enabled</p>
+                    </div>
+                    <button class="btn-secondary">Configure</button>
+                </div>
+                <div class="jurisdiction-card" id="state-tax-config"></div>
+                <div class="jurisdiction-card">
+                    <h3>🇨🇦 Canada (CRA)</h3>
+                    <div class="jurisdiction-details">
+                        <p><strong>Tax Brackets:</strong> Progressive (15% - 33%)</p>
+                        <p><strong>Filing Deadline:</strong> April 30</p>
+                        <p><strong>GST/HST:</strong> Enabled</p>
+                    </div>
+                    <button class="btn-secondary">Configure</button>
+                </div>
+                <div class="jurisdiction-card">
+                    <h3>🇬🇧 United Kingdom (HMRC)</h3>
+                    <div class="jurisdiction-details">
+                        <p><strong>Tax Brackets:</strong> Progressive (20% - 45%)</p>
+                        <p><strong>Filing Deadline:</strong> January 31</p>
+                        <p><strong>VAT Rate:</strong> 20%</p>
+                    </div>
+                    <button class="btn-secondary">Configure</button>
+                </div>
+            </div>
+
+            <div class="sales-tax-calculator">
+                <h3>Sales Tax / VAT Calculator</h3>
+                <form id="sales-tax-form">
+                    <div class="form-group">
+                        <label>Amount:</label>
+                        <input type="number" id="sales-amount" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Location:</label>
+                        <input type="text" id="sales-location" placeholder="City, State or Country">
+                    </div>
+                    <button type="button" id="calculate-sales-tax" class="btn-primary">Calculate</button>
+                    <div id="sales-tax-result"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Audit Defense Tab -->
+        <div id="audit-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Audit Defense & Receipt Retention</h2>
+            </div>
+
+            <div class="audit-stats">
+                <div class="stat-card">
+                    <h4>Total Archived Receipts</h4>
+                    <div class="stat-value" id="total-receipts">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Oldest Receipt</h4>
+                    <div class="stat-value" id="oldest-receipt">N/A</div>
+                </div>
+                <div class="stat-card">
+                    <h4>7-Year Compliance</h4>
+                    <div class="stat-value" id="compliance-status">✓ Compliant</div>
+                </div>
+            </div>
+
+            <div class="receipt-upload">
+                <h3>Upload Receipt</h3>
+                <div class="upload-area" id="receipt-upload-area">
+                    <input type="file" id="receipt-file" accept="image/*,.pdf" multiple>
+                    <p>Drag and drop receipts here or click to browse</p>
+                    <p class="help-text">Supports: PDF, JPG, PNG (7-year retention)</p>
+                </div>
+            </div>
+
+            <div class="receipt-archive">
+                <h3>Receipt Archive</h3>
+                <div class="archive-filters">
+                    <input type="text" id="receipt-search" placeholder="Search receipts...">
+                    <select id="receipt-year-filter">
+                        <option value="all">All Years</option>
+                    </select>
+                </div>
+                <table class="receipts-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Vendor</th>
+                            <th>Amount</th>
+                            <th>Category</th>
+                            <th>Archive Date</th>
+                            <th>Retention Until</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receipts-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Collaboration Tab -->
+        <div id="collaboration-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Tax Professional Collaboration</h2>
+                <button id="invite-professional" class="btn-primary">+ Invite Professional</button>
+            </div>
+
+            <div class="collaboration-workspace">
+                <div class="professionals-list">
+                    <h3>Connected Professionals</h3>
+                    <div id="professionals-container"></div>
+                </div>
+
+                <div class="shared-documents">
+                    <h3>Shared Documents</h3>
+                    <div id="shared-docs-container"></div>
+                </div>
+
+                <div class="messages-area">
+                    <h3>Messages</h3>
+                    <div id="messages-container"></div>
+                    <div class="message-input">
+                        <input type="text" id="message-text" placeholder="Type a message...">
+                        <button id="send-message" class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="integrations-section">
+                <h3>🔗 Tax Software Integrations</h3>
+                <div class="integrations-grid">
+                    <div class="integration-card">
+                        <h4>TurboTax</h4>
+                        <p>Status: <span class="status-badge" id="turbotax-status">Not Connected</span></p>
+                        <button class="btn-secondary" id="connect-turbotax">Connect</button>
+                    </div>
+                    <div class="integration-card">
+                        <h4>H&R Block</h4>
+                        <p>Status: <span class="status-badge" id="hrblock-status">Not Connected</span></p>
+                        <button class="btn-secondary" id="connect-hrblock">Connect</button>
+                    </div>
+                    <div class="integration-card">
+                        <h4>QuickBooks</h4>
+                        <p>Status: <span class="status-badge" id="quickbooks-status">Not Connected</span></p>
+                        <button class="btn-secondary" id="connect-quickbooks">Connect</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="tax-rules-engine.js"></script>
+    <script src="tax-forms-generator.js"></script>
+    <script src="tax-deductions.js"></script>
+    <script src="mileage-tracker.js"></script>
+    <script src="tax-compliance.js"></script>
+</body>
+</html>
