@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Verification - ExpenseFlow</title>
+    <link rel="stylesheet" href="device-verification.css">
+</head>
+<body>
+    <div class="container">
+        <div class="verification-card">
+            <div class="header">
+                <div class="icon">🔒</div>
+                <h1>Device Verification</h1>
+                <p class="subtitle">Secure your account with device attestation</p>
+            </div>
+
+            <!-- Device Info Section -->
+            <div class="section" id="device-info-section">
+                <h2>Device Information</h2>
+                <div class="device-details">
+                    <div class="detail-row">
+                        <span class="label">Device ID:</span>
+                        <span class="value" id="device-id">Detecting...</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Platform:</span>
+                        <span class="value" id="platform">Unknown</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Browser:</span>
+                        <span class="value" id="browser">Unknown</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Trust Score:</span>
+                        <span class="value trust-score" id="trust-score">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Status:</span>
+                        <span class="badge" id="attestation-status">Not Verified</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attestation Options -->
+            <div class="section" id="attestation-options">
+                <h2>Attestation Method</h2>
+                <div class="attestation-methods">
+                    <div class="method-card" data-provider="WEBAUTHENTICATION">
+                        <div class="method-icon">🔐</div>
+                        <div class="method-name">WebAuthn</div>
+                        <div class="method-desc">Hardware security key or biometric</div>
+                        <div class="method-trust">Trust: High</div>
+                    </div>
+                    <div class="method-card" data-provider="TPM">
+                        <div class="method-icon">🖥️</div>
+                        <div class="method-name">TPM</div>
+                        <div class="method-desc">Trusted Platform Module</div>
+                        <div class="method-trust">Trust: Very High</div>
+                    </div>
+                    <div class="method-card" data-provider="FALLBACK" data-default="true">
+                        <div class="method-icon">📱</div>
+                        <div class="method-name">Browser Fingerprint</div>
+                        <div class="method-desc">Behavioral analysis</div>
+                        <div class="method-trust">Trust: Medium</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button id="verify-btn" class="btn btn-primary">
+                    <span class="btn-icon">✓</span>
+                    Verify This Device
+                </button>
+                <button id="check-status-btn" class="btn btn-secondary">
+                    Check Verification Status
+                </button>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-messages"></div>
+
+            <!-- Trust Details -->
+            <div class="section" id="trust-details" style="display: none;">
+                <h2>Trust Analysis</h2>
+                <div class="trust-breakdown">
+                    <div class="trust-component">
+                        <div class="component-label">Attestation</div>
+                        <div class="component-bar">
+                            <div class="component-fill" id="trust-attestation"></div>
+                        </div>
+                        <div class="component-score" id="score-attestation">--</div>
+                    </div>
+                    <div class="trust-component">
+                        <div class="component-label">Stability</div>
+                        <div class="component-bar">
+                            <div class="component-fill" id="trust-stability"></div>
+                        </div>
+                        <div class="component-score" id="score-stability">--</div>
+                    </div>
+                    <div class="trust-component">
+                        <div class="component-label">Behavioral</div>
+                        <div class="component-bar">
+                            <div class="component-fill" id="trust-behavioral"></div>
+                        </div>
+                        <div class="component-score" id="score-behavioral">--</div>
+                    </div>
+                    <div class="trust-component">
+                        <div class="component-label">Historical</div>
+                        <div class="component-bar">
+                            <div class="component-fill" id="trust-historical"></div>
+                        </div>
+                        <div class="component-score" id="score-historical">--</div>
+                    </div>
+                </div>
+
+                <!-- Risk Factors -->
+                <div id="risk-factors" class="risk-factors" style="display: none;">
+                    <h3>Risk Factors Detected</h3>
+                    <div id="risk-list"></div>
+                </div>
+
+                <!-- Recommendations -->
+                <div id="recommendations" class="recommendations" style="display: none;">
+                    <h3>Recommendations</h3>
+                    <div id="recommendation-list"></div>
+                </div>
+            </div>
+
+            <!-- Device History -->
+            <div class="section" id="device-history-section" style="display: none;">
+                <h2>Device History</h2>
+                <div id="history-timeline"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="device-verification.js"></script>
+</body>
+</html>
