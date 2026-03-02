@@ -1,0 +1,9 @@
+{"level":"error","message":"Decryption failed for payload","service":"expense-flow","tenantId":"test_tenant_xyz_123","timestamp":"2026-02-25T15:06:40.775Z"}
+{"level":"error","message":"Decryption failed for payload","service":"expense-flow","tenantId":"test_tenant_xyz_123","timestamp":"2026-02-25T15:07:04.407Z"}
+{"level":"error","message":"Decryption failed for payload","service":"expense-flow","tenantId":"test_tenant_xyz_123","timestamp":"2026-02-25T15:09:29.697Z"}
+{"level":"error","message":"Decryption failed for payload","service":"expense-flow","tenantId":"699f1322de9461dc76bab733","timestamp":"2026-02-25T15:20:02.611Z"}
+{"level":"warn","message":"[Compliance Circuit] Breaker Tripped! Policy: Anti-Luxury Spend Cap","service":"expense-flow","timestamp":"2026-02-26T21:59:00.386Z"}
+{"level":"warn","message":"[Compliance Circuit] Breaker Tripped! Policy: Anti-Luxury Spend Cap","service":"expense-flow","timestamp":"2026-02-26T22:08:28.560Z"}
+{"level":"warn","message":"Privacy budget exceeded for workspace mockId. Skipping anonymization.","service":"expense-flow","timestamp":"2026-03-01T12:54:21.347Z"}
+{"level":"warn","message":"[ConflictMerge] Concurrent update detected for e1","service":"expense-flow","timestamp":"2026-03-02T06:43:43.331Z"}
+{"level":"warn","message":"[ConflictMerge] Concurrent update detected for e1","service":"expense-flow","timestamp":"2026-03-02T06:43:43.333Z"}

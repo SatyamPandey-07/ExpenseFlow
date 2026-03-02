@@ -500,6 +500,52 @@
     transform: translate(-50%, -50%) scale(1.3);
     background: linear-gradient(135deg, #00b4d8 0%, #64ffda 100%) !important;
   }
+  /* =========================
+   SCROLL TO TOP BUTTON
+========================= */
+
+#scrollTopBtn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 55px;
+  height: 55px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #64ffda);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  transition: all 0.35s ease;
+  z-index: 9999;
+}
+
+/* Hover effect */
+#scrollTopBtn:hover {
+  transform: translateY(-6px) scale(1.1);
+  box-shadow: 0 12px 35px rgba(99, 102, 241, 0.6);
+}
+
+/* Show animation */
+#scrollTopBtn.show {
+  display: flex;
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>
 
 <div class="cursor-trail-container" id="cursor-trail"></div>
@@ -777,11 +823,37 @@
   </div>
 
   <div class="footer-bottom">
-    <div class="footer-container">
-      <p>&copy; 2026 ExpenseFlow. All rights reserved.</p>
-    </div>
+      <p id="copyright" style="text-align:center;"></p>
+      <script>
+        document.getElementById("copyright").innerHTML =
+          `&copy; ${new Date().getFullYear()} Expense Flow . All rights reserved.`;
+      </script>
   </div>
+  <script src="protect.js"></script>
 </footer>
+<!-- Scroll To Top Button -->
+<button id="scrollTopBtn" aria-label="Scroll to top">
+  <i class="fas fa-arrow-up"></i>
+</button>
+<script>
+  const scrollTopBtn = document.getElementById("scrollTopBtn");
 
+  // Show button after scrolling 300px
+  window.addEventListener("scroll", () => {
+    if (window.scrollY > 300) {
+      scrollTopBtn.classList.add("show");
+    } else {
+      scrollTopBtn.classList.remove("show");
+    }
+  });
+
+  // Smooth scroll to top
+  scrollTopBtn.addEventListener("click", () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+</script>
 </body>
 </html>
