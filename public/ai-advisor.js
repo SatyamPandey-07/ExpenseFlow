@@ -291,3 +291,33 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AIFinancialAdvisor;
 }
+document.addEventListener('DOMContentLoaded', () => {
+    const advisor = new AIFinancialAdvisor();
+
+    // Optional: settings button to update API key
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            const newKey = prompt('Enter your OpenAI API key:', advisor.apiKey);
+            if (newKey) {
+                advisor.setApiKey(newKey);
+                advisor.addSystemMessage('✅ API key updated successfully!');
+            }
+        });
+    }
+});const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+themeToggleBtn.addEventListener('click', () => {
+    const htmlEl = document.documentElement;
+    const currentTheme = htmlEl.getAttribute('data-theme');
+
+    if (currentTheme === 'dark') {
+        htmlEl.setAttribute('data-theme', 'light');
+        themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+        themeToggleBtn.title = 'Switch to Dark Mode';
+    } else {
+        htmlEl.setAttribute('data-theme', 'dark');
+        themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        themeToggleBtn.title = 'Switch to Light Mode';
+    }
+});
