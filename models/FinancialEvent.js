@@ -81,6 +81,11 @@ const financialEventSchema = new mongoose.Schema({
         type: String,
         default: 'v1',
         index: true
+    },
+    vectorClock: {
+        type: Map,
+        of: Number,
+        default: {}
     }
 }, {
     timestamps: false // We use our own timestamp
@@ -92,5 +97,8 @@ financialEventSchema.index({ entityId: 1, sequence: 1 }, { unique: true });
 // Issue #842: Optimized index for temporal sharding queries
 financialEventSchema.index({ entityId: 1, timestamp: 1, sequence: 1 });
 financialEventSchema.index({ workspaceId: 1, timestamp: 1 });
+
+// Issue #868: Causal ordering index
+financialEventSchema.index({ workspaceId: 1, 'vectorClock': 1 });
 
 module.exports = mongoose.model('FinancialEvent', financialEventSchema);

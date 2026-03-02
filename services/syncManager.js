@@ -118,6 +118,34 @@ class SyncManager {
             vector: fullVector
         };
     }
+
+    /**
+     * Cross-master reconciliation for sharded histories.
+     * Issue #868: Detects and resolves forks in the ledger.
+     */
+    async reconcileMultiMasterHeads(workspaceId, nodeHeads) {
+        const conflictMergeEngine = require('./conflictMergeEngine');
+        const CausalVector = require('../models/CausalVector');
+
+        let winner = nodeHeads[0];
+
+        for (let i = 1; i < nodeHeads.length; i++) {
+            winner = await conflictMergeEngine.mergeHeads(winner, nodeHeads[i]);
+        }
+
+        // Update the converged vector for the workspace
+        await CausalVector.findOneAndUpdate(
+            { workspaceId },
+            {
+                vector: winner.vectorClock,
+                nodeId: winner.nodeId,
+                lastUpdated: new Date()
+            },
+            { upsert: true }
+        );
+
+        return winner;
+    }
 }
 
 module.exports = new SyncManager();

@@ -70,6 +70,24 @@ class LedgerRepository extends BaseRepository {
             .select('currentHash')
             .lean();
     }
+
+    /**
+     * Get the latest "Heads" from different master nodes for a workspace.
+     * Issue #868: Identifies divergent histories across nodes.
+     */
+    async getMultiMasterHeads(workspaceId) {
+        return await this.model.aggregate([
+            { $match: { workspaceId: new mongoose.Types.ObjectId(workspaceId) } },
+            { $sort: { timestamp: -1 } },
+            {
+                $group: {
+                    _id: "$forensicTraceId", // Group by node/session trace
+                    latestEvent: { $first: "$$ROOT" }
+                }
+            },
+            { $replaceRoot: { newRoot: "$latestEvent" } }
+        ]);
+    }
 }
 
 module.exports = new LedgerRepository();

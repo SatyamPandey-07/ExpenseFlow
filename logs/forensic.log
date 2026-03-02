@@ -5,3 +5,5 @@
 {"level":"warn","message":"[Compliance Circuit] Breaker Tripped! Policy: Anti-Luxury Spend Cap","service":"expense-flow","timestamp":"2026-02-26T21:59:00.386Z"}
 {"level":"warn","message":"[Compliance Circuit] Breaker Tripped! Policy: Anti-Luxury Spend Cap","service":"expense-flow","timestamp":"2026-02-26T22:08:28.560Z"}
 {"level":"warn","message":"Privacy budget exceeded for workspace mockId. Skipping anonymization.","service":"expense-flow","timestamp":"2026-03-01T12:54:21.347Z"}
+{"level":"warn","message":"[ConflictMerge] Concurrent update detected for e1","service":"expense-flow","timestamp":"2026-03-02T06:43:43.331Z"}
+{"level":"warn","message":"[ConflictMerge] Concurrent update detected for e1","service":"expense-flow","timestamp":"2026-03-02T06:43:43.333Z"}

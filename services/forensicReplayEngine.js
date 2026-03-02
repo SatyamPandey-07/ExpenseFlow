@@ -72,6 +72,25 @@ class ForensicReplayEngine {
 
         return history;
     }
+
+    /**
+     * Reconstruct entity state using Causal Ordering.
+     * Issue #868: Handles divergent (non-linear) histories by sorting by Vector Clock.
+     */
+    async reconstructCausalHistory(entityId, options = {}) {
+        const CausalMath = require('../utils/causalMath');
+        const events = await ledgerRepository.getEventStream(entityId, options);
+
+        // Sort events based on Causal Ordering (Happened-Before)
+        const sortedEvents = events.sort((a, b) => {
+            const rel = CausalMath.compareVectorClocks(a.vectorClock, b.vectorClock);
+            if (rel === 'HAPPENED_BEFORE') return -1;
+            if (rel === 'HAPPENED_AFTER') return 1;
+            return 0; // Concurrent or Equal
+        });
+
+        return diffReconstructor.reconstruct({}, sortedEvents);
+    }
 }
 
 module.exports = new ForensicReplayEngine();

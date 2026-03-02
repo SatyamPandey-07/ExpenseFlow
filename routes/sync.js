@@ -64,4 +64,50 @@ router.post('/conflicts/:id/resolve', auth, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/sync/health
+ * @desc    Get node health and master election status
+ * Issue #868: Monitoring distributed consensus health.
+ */
+router.get('/health', auth, async (req, res) => {
+  res.json({
+    success: true,
+    nodeId: process.env.SERVER_INSTANCE_ID || 'node-local',
+    networkStatus: process.env.DEGRADED_MODE === 'true' ? 'partitioned' : 'healthy',
+    consensusVersion: 'v2.5-Causal',
+    timestamp: new Date()
+  });
+});
+
+/**
+ * @route   POST /api/sync/reconcile/:workspaceId
+ * @desc    Trigger explicit multi-master head reconciliation
+ * Issue #868: Resolving forks in sharded ledger history.
+ */
+router.post('/reconcile/:workspaceId', auth, async (req, res) => {
+  try {
+    const syncManager = require('../services/syncManager');
+    const ledgerRepository = require('../repositories/ledgerRepository');
+    const { workspaceId } = req.params;
+
+    // Fetch divergent heads for this workspace across masters
+    const nodeHeads = await ledgerRepository.getMultiMasterHeads(workspaceId);
+
+    if (nodeHeads.length <= 1) {
+      return res.json({ success: true, message: 'History is linear. No reconciliation needed.' });
+    }
+
+    const convergedEvent = await syncManager.reconcileMultiMasterHeads(workspaceId, nodeHeads);
+
+    res.json({
+      success: true,
+      message: 'Ledger heads reconciled successfully.',
+      convergedSequence: convergedEvent.sequence,
+      convergedHash: convergedEvent.currentHash
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
