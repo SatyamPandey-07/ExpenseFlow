@@ -272,12 +272,12 @@ async function connectDatabase() {
       .catch(err => {
         console.error('Trusted relationships manager initialization error:', err);
       });
-    } catch (error) {
-    console.error('Database connection failed:', error.message);
-  }
-}
-
-connectDatabase();
+    
+    // Initialize session hijacking detection system
+    // Issue #881: Session Hijacking Prevention & Recovery
+    console.log('✓ Session hijacking detection initialized');
+  })
+  .catch(err => console.error('MongoDB connection error:', err));
 
 
 
@@ -504,6 +504,17 @@ sessionHijackingMiddleware.applyToRoutes(app, [
 // Serve recovery page
 app.get('/auth/recovery', (req, res) => {
   res.sendFile(require('path').join(__dirname, 'public', 'session-recovery.html'));
+});
+
+// 
+// Express error handler middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error('Express route error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
 });
 
 app.get('/', (req, res) => {
