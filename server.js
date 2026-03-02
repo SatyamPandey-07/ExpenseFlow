@@ -160,6 +160,7 @@ app.use(require('./middleware/auditTraceability'));
 app.use(require('./middleware/taxDeductionInterceptor')); // Issue #843
 app.use(require('./middleware/shardResolver')); // Issue #842: Distributed Ledger Fabric
 app.use(require('./middleware/partitionAwareGuard')); // Issue #868: Multi-Master Consensus
+app.use(require('./middleware/privacyProverGuard')); // Issue #867: ZK-Compliance Attestation
 app.use(require('./middleware/tenantResolver'));
 // Inject Circuit Breaker protection early in the pipeline
 // We pass 'TRANSACTION' as a default, though specific routers might override it
@@ -463,6 +464,7 @@ if (redisSub) {
 // Add issue specific jobs here
 if (process.env.NODE_ENV !== 'production') {
   require('./jobs/entropyPruner').start(); // Issue #868: Metadata management
+  require('./jobs/nightlyProver').start(); // Issue #867: ZK-Compliance Proving
 }
 
 app.use('/api/correlation', crossSessionCorrelationRoutes); // Issue #879: Cross-Session Threat Correlation

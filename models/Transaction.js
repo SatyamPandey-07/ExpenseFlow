@@ -233,6 +233,12 @@ const transactionSchema = new mongoose.Schema({
         isBenchmarked: { type: Boolean, default: false },
         lastBenchmarkedAt: Date,
         privacyEpsilonConsumed: { type: Number, default: 0 }
+    },
+    // NEW: Features for Zero-Knowledge Compliance
+    zkAuditMetadata: {
+        zkProofId: { type: mongoose.Schema.Types.ObjectId, ref: 'ZKAttestation' },
+        complianceRoot: String,
+        isProven: { type: Boolean, default: false }
     }
 }, {
     timestamps: true

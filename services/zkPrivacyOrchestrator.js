@@ -57,6 +57,31 @@ class ZKPrivacyOrchestrator {
 
         return homomorphicMath.calculateEncryptedAverage(totalSum, totalCount);
     }
+
+    /**
+     * Generate a ZK-SNARK compliance proof for a transaction.
+     * Issue #867: Bridging differential privacy with trustless attestation.
+     */
+    async generateTrustlessProof(transactionId, policy) {
+        const zkProofGenerator = require('./zkProofGenerator');
+        const transaction = await Transaction.findById(transactionId);
+
+        if (!transaction) throw new Error('Transaction not found');
+
+        // Check if the transaction is already "Anonymized" (PII stripped)
+        // In a real system, we'd verify the ZK-Vault status
+        const attestation = await zkProofGenerator.generateComplianceProof(transaction, policy);
+
+        // Update transaction with proof metadata
+        transaction.zkAuditMetadata = {
+            zkProofId: attestation._id,
+            complianceRoot: attestation.complianceRoot,
+            isProven: true
+        };
+        await transaction.save();
+
+        return attestation;
+    }
 }
 
 module.exports = new ZKPrivacyOrchestrator();
