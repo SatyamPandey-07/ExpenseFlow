@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const crypto = require('crypto');
-const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -11,6 +10,8 @@ const { generalLimiter } = require('./middleware/rateLimiter');
 const { sanitizeInput, sanitizationMiddleware, validateDataTypes } = require('./middleware/sanitizer');
 const securityMonitor = require('./services/securityMonitor');
 const apiGateway = require('./middleware/apiGateway');
+const requestContext = require('./middleware/requestContext');
+const requestCorrelation = require('./middleware/requestCorrelation');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -44,6 +45,7 @@ const containmentActionSystem = require('./services/containmentActionSystem'); /
 const trustedRelationshipsManager = require('./services/trustedRelationshipsManager'); // Issue #879
 const { transportSecuritySuite } = require('./middleware/transportSecurity');
 const cron = require('node-cron');
+const { Server } = require('socket.io');
 
 // Distributed real-time sync dependencies (Safe Initialization)
 let redisPub = null;
@@ -93,13 +95,13 @@ const SERVER_INSTANCE_ID = process.env.SERVER_INSTANCE_ID || crypto.randomUUID()
 const app = express();
 const server = http.createServer(app);
 
-const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
     origin: true,
     credentials: true
   }
 });
+
 
 // Initialize Asynchronous Listeners (Issue #711)
 require('./listeners/EmailListeners').init();
@@ -147,12 +149,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-/* ================================
-   BODY PARSER
-================================ */
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// 🔥 Register correlation middleware EARLY
+app.use(requestCorrelation);
+
+app.use(requestContext);
 app.use(require('./middleware/encryptionInterceptor'));
 app.use(require('./middleware/validationInterceptor'));
 app.use(require('./middleware/auditInterceptor'));
@@ -160,6 +163,7 @@ app.use(require('./middleware/auditTraceability'));
 app.use(require('./middleware/taxDeductionInterceptor')); // Issue #843
 app.use(require('./middleware/shardResolver')); // Issue #842: Distributed Ledger Fabric
 app.use(require('./middleware/partitionAwareGuard')); // Issue #868: Multi-Master Consensus
+app.use(require('./middleware/privacyProverGuard')); // Issue #867: ZK-Compliance Attestation
 app.use(require('./middleware/tenantResolver'));
 // Inject Circuit Breaker protection early in the pipeline
 // We pass 'TRANSACTION' as a default, though specific routers might override it
@@ -275,31 +279,13 @@ async function connectDatabase() {
   })
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Socket.IO authentication
+
+
+
 io.use(socketAuth);
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log(`User ${socket.user.name} connected to instance ${SERVER_INSTANCE_ID}`);
-
-  // Join user-specific room
-  socket.join(`user_${socket.userId}`);
-
-  // Handle sync requests
-  socket.on('sync_request', async (data) => {
-    try {
-      // Process sync queue for this user
-      const SyncQueue = require('./models/SyncQueue');
-      const pendingSync = await SyncQueue.find({
-        user: socket.userId,
-        processed: false
-      }).sort({ createdAt: 1 });
-
-      socket.emit('sync_data', pendingSync);
-    } catch (error) {
-      socket.emit('sync_error', { error: error.message });
-    }
-  });
 
   // Listen for client expense changes and broadcast to Redis
   socket.on('expense_created', (expense) => {
@@ -463,7 +449,12 @@ if (redisSub) {
 // Add issue specific jobs here
 if (process.env.NODE_ENV !== 'production') {
   require('./jobs/entropyPruner').start(); // Issue #868: Metadata management
+  require('./jobs/nightlyProver').start(); // Issue #867: ZK-Compliance Proving
+  require('./jobs/dnaAttestation').start(); // Issue #866: Genetic Money Integrity
 }
+
+// Lineage & Eligibility Middleware
+app.use(require('./middleware/lineageGuard')); // Issue #866: DNA-Based Eligibility check
 
 app.use('/api/correlation', crossSessionCorrelationRoutes); // Issue #879: Cross-Session Threat Correlation
 app.use('/api/session-recovery', sessionRecoveryRoutes); // Issue #881: Session Hijacking Prevention & Recovery

@@ -31,6 +31,15 @@ class HomomorphicMath {
         if (counts === 0) return 0;
         return sums / counts;
     }
+
+    /**
+     * Simulation of a ZK Range Proof verification on ciphertext.
+     * Issue #867: Verifying value is within bounds without decryption.
+     */
+    static verifyRange(encryptedValue, min, max) {
+        // In a real system, this would be a Bulletproofs or SNARK verification
+        return encryptedValue >= min && encryptedValue <= max;
+    }
 }
 
 module.exports = HomomorphicMath;

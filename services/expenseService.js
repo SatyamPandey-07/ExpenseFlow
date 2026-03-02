@@ -138,14 +138,24 @@ class ExpenseService {
             if (operatingNode) {
                 // Link expense to the fund node
                 finalData.treasuryNodeId = operatingNode._id;
-                // Record fund reservation in ledger
-                await ledgerService.recordEvent(
+
+                // Issue #866: Semantic Financial Lineage Attestation
+                const eligibilityTraversalEngine = require('./eligibilityTraversalEngine');
+                const lineageResult = await eligibilityTraversalEngine.attestAndConsume(
+                    operatingNode._id,
+                    finalData.amount,
+                    finalData.category.name || 'GENERAL',
+                    finalData.tags || []
+                );
+
+                // Record fund reservation in ledger with Source-DNA lineage
+                await ledgerService.recordLineageEvent(
                     operatingNode._id,
                     'FUNDS_RESERVED',
                     { amount: finalData.amount, expenseId: expense._id },
                     userId,
                     finalData.workspace,
-                    'TREASURY_NODE'
+                    lineageResult.selectedFragments
                 );
 
                 // Issue #843: Autonomous Tax Optimization Hook

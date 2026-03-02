@@ -65,4 +65,41 @@ router.get('/time-travel/:entityId', auth, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/audit/lineage/:transactionId
+ * @desc    Visualize "Money Flow Lineage" for regulatory inspection
+ * Issue #866: Provenance tracing from fund source to final expense category.
+ */
+router.get('/lineage/:transactionId', auth, async (req, res) => {
+  try {
+    const FinancialEvent = require('../models/FinancialEvent');
+    const MoneyLineage = require('../models/MoneyLineage');
+
+    // Find the event that recorded the lineage
+    const event = await FinancialEvent.findOne({
+      entityId: req.params.transactionId,
+      eventType: 'FUNDS_RESERVED'
+    });
+
+    if (!event || !event.payload?.fragments) {
+      return res.status(404).json({ success: false, error: 'No lineage metadata found for this transaction.' });
+    }
+
+    const lineageTree = {
+      transactionId: req.params.transactionId,
+      provenanceHash: event.payload.lineageProvenanceHash,
+      sources: event.payload.fragments.map(f => ({
+        dna: f.sourceDna,
+        amount: f.amountContributed,
+        originalHash: f.provenanceHash
+      })),
+      timestamp: event.timestamp
+    };
+
+    return ResponseFactory.success(res, lineageTree);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

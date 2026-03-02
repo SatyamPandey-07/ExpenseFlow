@@ -33,6 +33,7 @@ module.exports = (err, req, res, next) => {
     error.stack = err.stack;
     error.statusCode = err.statusCode || 500;
     error.status = err.status || 'error';
+    error.requestId = req.requestId;
 
     // Normalize specific DB/JWT errors into AppErrors
     if (err.name === 'CastError') error = handleCastErrorDB(error);

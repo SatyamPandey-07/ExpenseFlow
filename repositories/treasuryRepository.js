@@ -50,6 +50,18 @@ class TreasuryRepository extends BaseRepository {
             { new: true }
         );
     }
+
+    /**
+     * Get balance for a specific DNA type in a node.
+     * Issue #866: DNA-Aware balance tracking.
+     */
+    async getDnaBalance(nodeId, sourceDna) {
+        const node = await this.model.findById(nodeId);
+        if (!node) return 0;
+
+        const bucket = node.dnaRestrictedBuckets.find(b => b.sourceDna === sourceDna);
+        return bucket ? bucket.amount : 0;
+    }
 }
 
 module.exports = new TreasuryRepository();

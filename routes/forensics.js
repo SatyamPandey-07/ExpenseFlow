@@ -71,4 +71,30 @@ router.post('/shards/mount/:shardId', auth, async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/forensics/audit-proof/:transactionId
+ * @desc    Get a ZK-Proof attestation for a specific transaction (Trustless Audit)
+ * Issue #867: "Privacy-Preserving Audit" portal for external parties.
+ */
+router.get('/audit-proof/:transactionId', auth, async (req, res) => {
+    try {
+        const auditRepository = require('../repositories/auditRepository');
+        const attestation = await auditRepository.getAttestation(req.params.transactionId);
+
+        if (!attestation) {
+            return ResponseFactory.error(res, 404, 'No ZK-Attestation found for this transaction. Try running the prover.');
+        }
+
+        const isValid = await auditRepository.verifyIntegrity(attestation._id);
+
+        return ResponseFactory.success(res, {
+            attestation,
+            integrityVerified: isValid,
+            auditContext: 'TRUSTLESS_PRIVACY_PRESERVING'
+        });
+    } catch (error) {
+        return ResponseFactory.error(res, 500, error.message);
+    }
+});
+
 module.exports = router;

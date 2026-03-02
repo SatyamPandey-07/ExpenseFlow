@@ -13,9 +13,16 @@ const sendErrorDev = (err, res) => {
         status: err.status,
         error: err,
         message: err.message,
-        stack: err.stack
+        stack: err.stack,
+        requestId: err.requestId  // 👈 ADD THIS
     });
-};
+};if (err.isOperational) {
+    res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+        requestId: err.requestId  
+    });
+}
 
 /**
  * Send sanitized error information in Production
@@ -37,9 +44,10 @@ const sendErrorProd = (err, res) => {
         });
 
         res.status(500).json({
-            status: 'error',
-            message: 'An unexpected internal error occurred. Please try again later.'
-        });
+    status: 'error',
+    message: 'An unexpected internal error occurred. Please try again later.',
+    requestId: err.requestId  // 👈 ADD THIS
+});
     }
 };
 
