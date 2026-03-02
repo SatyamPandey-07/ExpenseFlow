@@ -39,6 +39,7 @@ const realtimeCollaborationRoutes = require('./routes/realtimeCollaboration');
 const adaptiveRiskEngineRoutes = require('./routes/adaptiveRiskEngine');
 const attackGraphRoutes = require('./routes/attackGraph'); // Issue #848: Cross-Account Attack Graph Detection
 const incidentPlaybookRoutes = require('./routes/incidentPlaybooks'); // Issue #851: Autonomous Incident Response Playbooks
+const incidentAutomationRoutes = require('./routes/incidentAutomation'); // Issue #919: Incident Response Automation Engine
 const sessionTrustScoringRoutes = require('./routes/sessionTrustScoring'); // Issue #852: Continuous Session Trust Re-Scoring
 const sessionRecoveryRoutes = require('./routes/sessionRecovery'); // Issue #881: Session Hijacking Prevention & Recovery
 const sessionHijackingMiddleware = require('./middleware/sessionHijackingDetection'); // Issue #881
@@ -434,8 +435,9 @@ app.use('/api/realtime-collab', realtimeCollaborationRoutes);
 app.use('/api/risk-engine', adaptiveRiskEngineRoutes);
 app.use('/api/attack-graph', attackGraphRoutes); // Issue #848: Cross-Account Attack Graph Detection
 app.use('/api/incident-playbooks', incidentPlaybookRoutes); // Issue #851: Autonomous Incident Response Playbooks
+app.use('/api/incident-automation', incidentAutomationRoutes); // Issue #919: Incident Response Automation Engine
 app.use('/api/session-trust', sessionTrustScoringRoutes); // Issue #852: Continuous Session Trust Re-Scoring
-Apply session hijacking detection middleware to protected routes
+// Apply session hijacking detection middleware to protected routes
 // Issue #881: Session Hijacking Prevention & Recovery
 sessionHijackingMiddleware.applyToRoutes(app, [
   '/api/expenses',
