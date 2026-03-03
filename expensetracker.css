@@ -1,70 +1,48 @@
 /* ==============================
    ROOT VARIABLES + THEMES
 ============================== */
-.social-link:hover,
-.social-link:focus-visible {
-  transform: scale(1.15);
-  color: #64ffda;
-  outline: none;
+:root {
+  /* Backgrounds */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-glass: rgba(255,255,255,0.05);
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-accent: #3b82f6;
+
+  /* Accent */
+  --accent-primary: #3b82f6;
+  --accent-secondary: #a855f7;
+
+  /* Borders & Shadows */
+  --border-color: #334155;
+  --shadow-card: 0 8px 16px rgba(0,0,0,0.4);
+  --transition: all 0.3s ease;
+
+  /* Navbar fallback */
+  --navbar-bg: rgba(33, 1, 83, 0.404);
 }
 
-/* ==============================
-   AI ADVISOR FLOATING BUTTON
-.ai-advisor-btn {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  width: 70px;
-  height: 70px;
-  background: linear-gradient(135deg, #64ffda 0%, #667eea 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #0f0f23;
-  font-size: 1.8rem;
-  box-shadow: 0 8px 25px rgba(100, 255, 218, 0.35), 
-              0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  text-decoration: none;
-  z-index: 50;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  cursor: pointer;
+/* LIGHT THEME */
+html[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e5e5e5;
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --accent-primary: #2563eb;
+  --accent-secondary: #9333ea;
+  --border-color: #e5e5e5;
+  --navbar-bg: rgba(245,245,245,0.8);
 }
 
-.ai-advisor-btn:hover {
-  transform: translateY(-5px) scale(1.15);
-  box-shadow: 0 12px 35px rgba(100, 255, 218, 0.5),
-              0 6px 20px rgba(102, 126, 234, 0.4);
-  border-color: rgba(255, 255, 255, 0.4);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.ai-advisor-btn:active {
-  transform: translateY(-2px) scale(1.05);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .ai-advisor-btn {
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 60px;
-    height: 60px;
-    font-size: 1.4rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .ai-advisor-btn {
-    bottom: 1rem;
-    right: 1rem;
-    width: 55px;
-    height: 55px;
-    font-size: 1.2rem;
-  }
-}
+/* OCEAN THEME */
+html[data-theme="ocean"] {
+  --bg-primary: #0b1e2d;
+  --bg-secondary: #12344d;
   --bg-tertiary: #164863;
   --text-primary: #e0f7fa;
   --text-secondary: #7dd3fc;
@@ -4664,47 +4642,4 @@ body {
   transform: scale(1.15);
   color: #64ffda;
   outline: none;
-}
-/* ==============================
-   AI ADVISOR FLOATING BUTTON
-============================== */
-.ai-advisor-btn {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  transition: all 0.3s ease;
-  text-decoration: none;
-  z-index: 50;
-  border: none;
-}
-
-.ai-advisor-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-.ai-advisor-btn:active {
-  transform: scale(0.95);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .ai-advisor-btn {
-    bottom: 1rem;
-    right: 1rem;
-    width: 50px;
-    height: 50px;
-    font-size: 1.2rem;
-  }
 }

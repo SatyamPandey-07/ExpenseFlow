@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,8 +47,8 @@
 
 <script>
 (function() {
-  // Keep default cursor visible
-  // document.body.style.cursor = 'none';
+  // Hide default cursor
+  document.body.style.cursor = 'none';
   
   const container = document.getElementById('cursor-trail');
   const coords = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -219,10 +219,11 @@
           <div class="nav-menu" id="nav-menu">
             <a href="#dashboard" class="nav-link active">Dashboard</a>
             <a href="analytics.html" class="nav-link">Analytics</a>
+            <a href="public/analytics.html" class="nav-link">Analytics</a>
+            <a href="#analytics" class="nav-link">Analytics</a>
             <a href="#health" class="nav-link" id="health-tab">Health</a>
             <a href="#goals" class="nav-link">Goals</a>
             <a href="#debt-tracker" class="nav-link">Debt Tracker</a>
-            <a href="LevelUp.html" class="nav-link">Level Up</a>
           <div class="nav-item settings-item">
   <label for="theme-select" class="nav-link settings-label">
     Settings
@@ -256,7 +257,6 @@
             <span class="bar"></span>
             <span class="bar"></span>
             <span><a href="index.html" class="nav-link">ExpenseFlow</a></span>
-            
           </div>
           <div class="card-content">
             <h4>Income</h4>
@@ -909,43 +909,78 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-  <!-- AI Advisor -->
+  <!-- Chatbot -->
 
-    <!-- Floating AI Advisor Button -->
-    <a href="public/ai-advisor.html" class="ai-advisor-btn" title="Chat with AI Advisor">
-      <i class="fas fa-sparkles"></i>
-    </a>
 
-    <!-- Authentication Prompt for Unauthenticated Users (Premium) -->
-    <div id="authPrompt" class="auth-prompt">
-      <div class="auth-prompt-content">
-        <div class="auth-prompt-icon">
-          <i class="fas fa-shield-halved"></i>
+    <!-- Chatbot Widget -->
+    <div id="chatbot-container" class="chatbot-container">
+      <div id="chatbot-widget" class="chatbot-widget">
+        <!-- Chat Header -->
+        <div class="chatbot-header">
+          <div class="chatbot-header-content">
+            <h3>ExpenseFlow Assistant</h3>
+            <p>Ask me anything about your finances</p>
+          </div>
+          <button id="chatbot-close" class="chatbot-close-btn">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
-        <h2>Unlock ExpenseFlow</h2>
-        <p>Your journey to financial freedom starts here. Sign in to access smart analytics, personalized goals, and secure tracking.</p>
+        
+        <!-- Chat Messages -->
+        <div id="chatbot-messages" class="chatbot-messages">
+          <div class="chatbot-message bot-message">
+            <div class="message-content">
+              <p>Hi! 👋 I'm your ExpenseFlow Assistant. How can I help you manage your finances today?</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="chatbot-input-area">
+          <form id="chatbot-form" class="chatbot-form">
+            <input 
+              type="text" 
+              id="chatbot-input" 
+              class="chatbot-input" 
+              placeholder="Type your message..." 
+              autocomplete="off"
+            >
+            <button type="submit" class="chatbot-send-btn">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
       
-        </div>
-        
-        <div class="auth-prompt-features">
-          <h4>Premium Features:</h4>
-          <ul>
-            <li><i class="fas fa-check-circle"></i> Smart Tracking</li>
-            <li><i class="fas fa-check-circle"></i> Budget Planning</li>
-            <li><i class="fas fa-check-circle"></i> Cloud Sync</li>
-            <li><i class="fas fa-check-circle"></i> Data Export</li>
-          </ul>
-        </div>
+      <!-- Chat Toggle Button -->
+      <button id="chatbot-toggle" class="chatbot-toggle-btn" title="Chat with Assistant">
+        <i class="fas fa-comments"></i>
+      </button>
+    </div> <!-- End #chatbot-container -->
+
+  <!-- Authentication Prompt for Unauthenticated Users (Premium) -->
+  <div id="authPrompt" class="auth-prompt">
+    <div class="auth-prompt-content">
+      <div class="auth-prompt-icon">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <h2>Unlock ExpenseFlow</h2>
+      <p>Your journey to financial freedom starts here. Sign in to access smart analytics, personalized goals, and secure tracking.</p>
+    
+      <div class="auth-prompt-features">
+        <h4>Premium Features:</h4>
+        <ul>
+          <li><i class="fas fa-check-circle"></i> Smart Tracking</li>
+          <li><i class="fas fa-check-circle"></i> Budget Planning</li>
+          <li><i class="fas fa-check-circle"></i> Cloud Sync</li>
+          <li><i class="fas fa-check-circle"></i> Data Export</li>
+        </ul>
       </div>
     </div>
+  </div>
 
    
-        </div>
-      </div>
-    </div>
-
-   
-        
+            
     <script>
       // Mobile Navigation Toggle
       document.addEventListener('DOMContentLoaded', function() {
@@ -1408,7 +1443,118 @@ window.addEventListener("DOMContentLoaded", () => {
       // =========================
 
       function initializeChatbot() {
-        // AI Advisor is now used - initialization done via script tag
+        const chatbotToggle = document.getElementById('chatbot-toggle');
+        const chatbotWidget = document.getElementById('chatbot-widget');
+        const chatbotForm = document.getElementById('chatbot-form');
+        const chatbotInput = document.getElementById('chatbot-input');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const chatbotClose = document.getElementById('chatbot-close');
+
+        // Toggle chatbot window
+        chatbotToggle.addEventListener('click', () => {
+          chatbotWidget.classList.toggle('active');
+          if (chatbotWidget.classList.contains('active')) {
+            chatbotToggle.classList.add('hidden');
+            chatbotInput.focus();
+          } else {
+            chatbotToggle.classList.remove('hidden');
+          }
+        });
+
+        // Close chatbot window
+        chatbotClose.addEventListener('click', () => {
+          chatbotWidget.classList.remove('active');
+          chatbotToggle.classList.remove('hidden');
+        });
+
+        // Handle form submission
+        chatbotForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const message = chatbotInput.value.trim();
+          
+          if (message) {
+            // Add user message
+            addMessage(message, 'user');
+            chatbotInput.value = '';
+            
+            // Simulate bot response
+            setTimeout(() => {
+              const response = getBotResponse(message);
+              addMessage(response, 'bot');
+            }, 500);
+          }
+        });
+
+        function addMessage(text, sender) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = `chatbot-message ${sender}-message`;
+          
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'message-content';
+          
+          const p = document.createElement('p');
+          p.textContent = text;
+          
+          contentDiv.appendChild(p);
+          messageDiv.appendChild(contentDiv);
+          
+          chatbotMessages.appendChild(messageDiv);
+          
+          // Auto scroll to bottom
+          chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+
+        function getBotResponse(userMessage) {
+          const lowerMessage = userMessage.toLowerCase();
+          
+          // Expense-related responses
+          if (lowerMessage.includes('add') && (lowerMessage.includes('expense') || lowerMessage.includes('transaction'))) {
+            return "You can add an expense by scrolling down to the 'Add New Transaction' form. Fill in the description, amount, category, and date, then click submit! 📝";
+          }
+          
+          if (lowerMessage.includes('budget')) {
+            return "Budget planning is a great way to manage your spending! You can set budget goals by category to track your spending limits. Would you like tips on creating an effective budget? 💰";
+          }
+          
+          if (lowerMessage.includes('goal') || lowerMessage.includes('savings')) {
+            return "Setting financial goals helps you stay motivated! You can create short-term and long-term goals to work towards your financial dreams. What's your goal? 🎯";
+          }
+          
+          if (lowerMessage.includes('category')) {
+            return "We support many categories including: Food, Transportation, Shopping, Entertainment, Bills, Healthcare, Education, Travel, Salary, Freelance, Investment, and more! Pick what works for you. 📂";
+          }
+          
+          if (lowerMessage.includes('receipt')) {
+            return "You can upload receipts to verify your expenses! This helps you keep accurate records and track your spending better. Perfect for important purchases! 📸";
+          }
+          
+          if (lowerMessage.includes('sync') || lowerMessage.includes('offline')) {
+            return "ExpenseFlow works offline and syncs your data when you're back online! Your data is always safe and accessible. No worries about losing your information! 🔄";
+          }
+          
+          if (lowerMessage.includes('delete') || lowerMessage.includes('edit')) {
+            return "You can edit or delete transactions from your history. Just click on any transaction to modify it or remove it. Easy management! ✏️";
+          }
+          
+          if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
+            return "I'm here to help! You can ask me about:\n• Adding expenses\n• Creating budgets\n• Setting goals\n• Managing receipts\n• Categories\n• And more!\n\nWhat would you like to know? 🤔";
+          }
+          
+          if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+            return "Hey there! 👋 I'm your ExpenseFlow Assistant. How can I help you manage your finances today?";
+          }
+          
+          // Default responses
+          const responses = [
+            "That's a great question! Feel free to explore ExpenseFlow's features or ask me more about managing your expenses. 💡",
+            "I'm here to help you manage your finances better! Is there anything specific you'd like to know? 🤝",
+            "Thanks for that message! I'm learning to help you even better. Check out the features above or ask me another question! 🚀",
+            "Interesting! Remember, smart money management is all about tracking and planning. How can I assist you further? 📊",
+            "I'm always here to help! Feel free to ask me anything about budgeting, expense tracking, or financial planning. 💸"
+          ];
+          
+          return responses[Math.floor(Math.random() * responses.length)];
+        }
       }
     </script>
     
@@ -1437,7 +1583,7 @@ window.addEventListener("DOMContentLoaded", () => {
             behavior: "smooth"
           });
         });
-      });}
+      });
       //this is theme selector
       const themeSelect = document.getElementById("theme-select");
 
@@ -1476,4 +1622,5 @@ function openLoginModal() {
     </script>
    
   </body>
+
 </html>
