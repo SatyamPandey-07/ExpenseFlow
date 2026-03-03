@@ -9,7 +9,10 @@
     "test": "mocha tests/**/*.test.js --timeout 10000"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.0",
+    "@azure/keyvault-keys": "^4.10.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@google-cloud/kms": "^5.4.0",
     "aws-sdk": "^2.1564.0",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
@@ -51,6 +54,8 @@
     "xss": "^1.0.14"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "chai": "^6.2.2",
+    "nodemon": "^3.0.1",
+    "sinon": "^21.0.1"
   }
 }
