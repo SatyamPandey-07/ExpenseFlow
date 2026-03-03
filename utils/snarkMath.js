@@ -45,10 +45,30 @@ class SnarkMath {
      * Verifies a simulated SNARK proof.
      */
     static verify(proofObject) {
+        // Issue #907: Adversarial Hardening
+        // Ensure the proof hasn't been tampered with or contains impossible signals
+        if (!this.adversarialSanityCheck(proofObject)) {
+            return false;
+        }
+
         // In a real SNARK implementation, this would use a library like snarkjs
-        // Here we simulate verification based on the hidden 'isValid' signal
         const signals = proofObject.publicSignals;
         return signals[signals.length - 1] === '1';
+    }
+
+    /**
+     * Detects common spoofing attempts in synthetic proofs.
+     */
+    static adversarialSanityCheck(proof) {
+        if (!proof.proof || proof.proof.length < 64) return false;
+
+        // Check for 'Structured' signal manipulation (e.g., negative values in range checks)
+        const signals = proof.publicSignals || [];
+        for (const s of signals) {
+            if (s.includes('-') && proof.type === 'RANGE') return false;
+        }
+
+        return true;
     }
 }
 

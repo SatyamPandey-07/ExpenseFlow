@@ -226,7 +226,8 @@ const workspaceSchema = new mongoose.Schema({
     weeklyReports: { type: Boolean, default: false },
     allowSelfApproval: { type: Boolean, default: false },
     requireReceipts: { type: Boolean, default: false },
-    receiptThreshold: { type: Number, default: 25 }
+    receiptThreshold: { type: Number, default: 25 },
+    fiscallyConservativeThreshold: { type: Number, default: 0.1 } // 10% risk tolerance
   },
 
   // Invite settings
@@ -671,11 +672,11 @@ workspaceSchema.methods.getSemanticClusterConfig = function () {
 // Issue #796: Instance method to update semantic cluster stats
 workspaceSchema.methods.updateSemanticClusterStats = async function (stats) {
   this.semanticCluster = this.semanticCluster || {};
-  
+
   if (!this.semanticCluster.clusterId) {
     this.semanticCluster.clusterId = `${this._id}_default`;
   }
-  
+
   if (stats.totalIndexedEntities !== undefined) {
     this.semanticCluster.totalIndexedEntities = stats.totalIndexedEntities;
   }
@@ -685,7 +686,7 @@ workspaceSchema.methods.updateSemanticClusterStats = async function (stats) {
   if (stats.clusterHealth) {
     this.semanticCluster.clusterHealth = stats.clusterHealth;
   }
-  
+
   return this.save();
 };
 
@@ -693,7 +694,7 @@ workspaceSchema.methods.updateSemanticClusterStats = async function (stats) {
 workspaceSchema.statics.getWorkspacesNeedingReindex = async function () {
   const reindexThresholdDate = new Date();
   reindexThresholdDate.setDate(reindexThresholdDate.getDate() - 30); // Default 30 days
-  
+
   return this.find({
     status: 'active',
     $or: [

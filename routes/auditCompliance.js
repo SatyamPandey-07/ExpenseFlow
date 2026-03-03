@@ -3,6 +3,8 @@ const { body, query, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const ImmutableAuditLog = require('../models/ImmutableAuditLog');
 const ComplianceViolation = require('../models/ComplianceViolation');
+const UserConsent = require('../models/UserConsent');
+const DataAccessLog = require('../models/DataAccessLog');
 const Workspace = require('../models/Workspace');
 const auditComplianceService = require('../services/auditComplianceService');
 
@@ -465,6 +467,359 @@ router.post('/audit-logs/export', auth, adminAuth, [
 
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(exportData);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+// ========================================
+// USER CONSENT TRACKING ROUTES
+// Issue #920: Compliance & Audit Logging Framework
+// ========================================
+
+router.post('/consent/record', auth, [
+  body('consentType').isIn([
+    'terms_of_service', 'privacy_policy', 'data_processing', 
+    'marketing_communications', 'analytics_tracking', 'cookie_usage',
+    'data_sharing', 'third_party_integrations', 'biometric_data',
+    'health_data', 'financial_data_processing', 'cross_border_data_transfer',
+    'automated_decision_making', 'profiling'
+  ]),
+  body('consentGiven').isBoolean(),
+  body('consentVersion').isString().notEmpty(),
+  body('consentMethod').isIn(['explicit', 'implicit', 'opt_in', 'opt_out', 'granular']),
+  body('workspaceId').optional().isMongoId(),
+  body('legalBasis').optional().isIn(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interest']),
+  body('regulations').optional().isArray(),
+  body('proofOfConsent').optional().isObject()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    
+    const userId = getUserId(req);
+    const consent = await auditComplianceService.recordConsent({
+      userId,
+      workspaceId: req.body.workspaceId,
+      consentType: req.body.consentType,
+      consentGiven: req.body.consentGiven,
+      consentVersion: req.body.consentVersion,
+      consentMethod: req.body.consentMethod,
+      legalBasis: req.body.legalBasis,
+      expiresAt: req.body.expiresAt,
+      regulations: req.body.regulations || [],
+      proofOfConsent: req.body.proofOfConsent,
+      metadata: {
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        sessionId: req.sessionId,
+        geolocation: req.body.geolocation
+      }
+    });
+
+    res.json({ success: true, data: consent });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/consent/withdraw', auth, [
+  body('consentType').isString().notEmpty(),
+  body('reason').isString().notEmpty()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const userId = getUserId(req);
+    const results = await auditComplianceService.withdrawConsent(
+      userId,
+      req.body.consentType,
+      req.body.reason,
+      {
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        sessionId: req.sessionId
+      }
+    );
+
+    res.json({ success: true, data: { withdrawnCount: results.length, consents: results } });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/consent/history', auth, [
+  query('workspaceId').optional().isMongoId()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const userId = getUserId(req);
+    const history = await auditComplianceService.getConsentHistory(userId, req.query.workspaceId);
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/consent/check/:consentType', auth, [
+  query('workspaceId').optional().isMongoId()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const userId = getUserId(req);
+    const hasConsent = await auditComplianceService.checkConsent(
+      userId,
+      req.params.consentType,
+      req.query.workspaceId
+    );
+
+    res.json({ success: true, data: { hasConsent } });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/consent/proof/:consentId', auth, adminAuth, async (req, res) => {
+  try {
+    const proof = await auditComplianceService.getConsentProof(req.params.consentId);
+    res.json({ success: true, data: proof });
+  } catch (error) {
+    res.status(error.status || 404).json({ success: false, message: error.message });
+  }
+});
+
+// ========================================
+// DATA ACCESS LOGGING ROUTES
+// Issue #920: Compliance & Audit Logging Framework
+// ========================================
+
+router.post('/data-access/log', auth, [
+  body('accessType').isIn(['read', 'write', 'update', 'delete', 'export', 'download', 'print', 'share', 'decrypt', 'search', 'bulk_access', 'api_access']),
+  body('resourceType').isIn(['expense', 'budget', 'user_profile', 'workspace', 'report', 'invoice', 'receipt', 'bank_connection', 'api_key', 'encryption_key', 'audit_log', 'personal_data', 'financial_data', 'health_data', 'sensitive_document']),
+  body('resourceId').notEmpty(),
+  body('dataClassification').optional().isIn(['public', 'internal', 'confidential', 'restricted', 'pii', 'phi', 'pci']),
+  body('accessReason').optional().isIn(['routine_operation', 'user_request', 'support_ticket', 'compliance_audit', 'security_investigation', 'legal_requirement', 'data_subject_request', 'administrative_task', 'automated_process'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const userId = getUserId(req);
+    const accessLog = await auditComplianceService.logDataAccess({
+      userId,
+      workspaceId: req.body.workspaceId,
+      accessType: req.body.accessType,
+      resourceType: req.body.resourceType,
+      resourceId: req.body.resourceId,
+      resourceOwner: req.body.resourceOwner,
+      dataClassification: req.body.dataClassification || 'internal',
+      accessReason: req.body.accessReason || 'routine_operation',
+      accessAuthorization: req.body.accessAuthorization || { authorized: true, method: 'role_based' },
+      accessDetails: req.body.accessDetails || {},
+      metadata: {
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        sessionId: req.sessionId,
+        requestId: req.headers['x-request-id'],
+        apiEndpoint: req.originalUrl,
+        httpMethod: req.method
+      },
+      complianceRelevance: req.body.complianceRelevance || {},
+      status: req.body.status || 'success'
+    });
+
+    res.json({ success: true, data: accessLog });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/data-access/resource/:resourceType/:resourceId', auth, adminAuth, async (req, res) => {
+  try {
+    const history = await auditComplianceService.getDataAccessHistory(
+      req.params.resourceType,
+      req.params.resourceId,
+      { limit: Number(req.query.limit) || 100 }
+    );
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/data-access/user/:userId', auth, adminAuth, [
+  query('resourceType').optional().isString(),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601(),
+  query('limit').optional().isInt({ min: 1, max: 1000 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const history = await auditComplianceService.getUserDataAccessHistory(req.params.userId, {
+      resourceType: req.query.resourceType,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      limit: Number(req.query.limit) || 100
+    });
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/data-access/analytics', auth, adminAuth, [
+  query('workspaceId').optional().isMongoId(),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    await ensureWorkspaceAccess(req, req.query.workspaceId);
+
+    const analytics = await auditComplianceService.getDataAccessAnalytics({
+      workspaceId: req.query.workspaceId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate
+    });
+
+    res.json({ success: true, data: analytics });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+// ========================================
+// COMPLIANCE ALERTS ROUTES
+// Issue #920: Compliance & Audit Logging Framework
+// ========================================
+
+router.get('/compliance/alerts', auth, adminAuth, [
+  query('workspaceId').optional().isMongoId(),
+  query('severity').optional().isIn(['low', 'medium', 'high', 'critical']),
+  query('status').optional().isIn(['open', 'investigating', 'remediation_in_progress', 'resolved', 'false_positive', 'accepted_risk']),
+  query('standard').optional().isString(),
+  query('limit').optional().isInt({ min: 1, max: 1000 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    await ensureWorkspaceAccess(req, req.query.workspaceId);
+
+    const alerts = await auditComplianceService.getComplianceAlerts({
+      workspaceId: req.query.workspaceId,
+      severity: req.query.severity,
+      status: req.query.status,
+      standard: req.query.standard,
+      limit: Number(req.query.limit) || 100
+    });
+
+    res.json({ success: true, data: alerts });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+// ========================================
+// ENHANCED COMPLIANCE DASHBOARD
+// Issue #920: Compliance & Audit Logging Framework
+// ========================================
+
+router.get('/compliance/dashboard-enhanced', auth, adminAuth, [
+  query('workspaceId').optional().isMongoId(),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    await ensureWorkspaceAccess(req, req.query.workspaceId);
+
+    const dashboard = await auditComplianceService.getComplianceDashboard(
+      req.query.workspaceId,
+      {
+        start: req.query.startDate,
+        end: req.query.endDate
+      }
+    );
+
+    res.json({ success: true, data: dashboard });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+// ========================================
+// COMPREHENSIVE COMPLIANCE EXPORT
+// Issue #920: Compliance & Audit Logging Framework
+// ========================================
+
+router.post('/compliance/export', auth, adminAuth, [
+  body('format').isIn(['json', 'csv', 'xml']),
+  body('workspaceId').optional().isMongoId(),
+  body('userId').optional().isMongoId(),
+  body('startDate').optional().isISO8601(),
+  body('endDate').optional().isISO8601(),
+  body('limit').optional().isInt({ min: 1, max: 50000 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    await ensureWorkspaceAccess(req, req.body.workspaceId);
+
+    const exportData = await auditComplianceService.generateComplianceExport(
+      req.body.format,
+      {
+        workspaceId: req.body.workspaceId,
+        userId: req.body.userId,
+        startDate: req.body.startDate,
+        endDate: req.body.endDate,
+        limit: req.body.limit || 10000
+      }
+    );
+
+    // Log the export
+    await auditComplianceService.logImmutableAudit(
+      getUserId(req),
+      'compliance_data_exported',
+      'compliance_export',
+      null,
+      {},
+      {
+        workspaceId: req.body.workspaceId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        sessionId: req.sessionId,
+        apiEndpoint: req.originalUrl,
+        riskLevel: 'medium',
+        complianceFlags: [{
+          standard: 'INTERNAL',
+          requirement: 'Data export audit',
+          status: 'compliant',
+          details: `Exported compliance data in ${req.body.format} format`
+        }]
+      }
+    );
+
+    const contentTypes = {
+      json: 'application/json',
+      csv: 'text/csv',
+      xml: 'application/xml'
+    };
+
+    res.setHeader('Content-Type', contentTypes[req.body.format]);
+    res.setHeader('Content-Disposition', `attachment; filename="compliance-export-${Date.now()}.${req.body.format}"`);
     res.send(exportData);
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });

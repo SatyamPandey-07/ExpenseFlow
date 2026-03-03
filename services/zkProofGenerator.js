@@ -29,11 +29,11 @@ class ZKProofGenerator {
         const attestation = await ZKAttestation.create({
             transactionId: transaction._id,
             workspaceId: transaction.workspaceId,
-            proofType: proofResult.type === 'RANGE' ? 'RANGE_PROOF' : 'MEMBERSHIP_PROOF',
-            proofData: proofResult,
+            verificationKeyId: 'default_vk', // TODO: Use actual verification key ID
             publicSignals: proofResult.publicSignals,
+            proofHash: require('crypto').createHash('sha256').update(JSON.stringify(proofResult)).digest('hex'),
             complianceRoot: transaction.currentHash || '0x0', // Anchor to transaction state
-            status: 'GENERATED'
+            proofStatus: 'generated'
         });
 
         return attestation;

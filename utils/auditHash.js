@@ -33,6 +33,16 @@ class AuditHash {
         const expected = this.sign(hash);
         return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
     }
+
+    /**
+     * Specialized hash for self-healing correction chains.
+     * Issue #910: Multi-dimensional pinning of repair events.
+     */
+    calculateCorrectionHash(correctionId, metadata) {
+        return crypto.createHash('sha256')
+            .update(`${correctionId}:${JSON.stringify(metadata)}`)
+            .digest('hex');
+    }
 }
 
 module.exports = new AuditHash();

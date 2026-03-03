@@ -24,10 +24,13 @@ const privacyProverGuard = async (req, res, next) => {
                     return originalJson.call(this, {
                         success: true,
                         attestation: {
-                            proofType: attestation.proofType,
+                            verificationKeyId: attestation.verificationKeyId,
                             publicSignals: attestation.publicSignals,
-                            proof: attestation.proofData.proof,
-                            verificationStatus: SnarkMath.verify(attestation.proofData) ? 'VERIFIED' : 'INVALID'
+                            proofHash: attestation.proofHash,
+                            complianceRoot: attestation.complianceRoot,
+                            proofStatus: attestation.proofStatus,
+                            generatedAt: attestation.generatedAt
+                        },
                         },
                         message: 'Privacy-Preserving Audit Proof provided.'
                     });

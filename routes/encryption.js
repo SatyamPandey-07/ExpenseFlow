@@ -3,7 +3,7 @@ const router = express.Router();
 const kms = require('../services/keyManagementService');
 const encryptionService = require('../services/encryptionService');
 const auth = require('../middleware/auth');
-const { requireRole } = require('../middleware/rbac');
+const { checkRole } = require('../middleware/rbac');
 const { 
   encryptRequestFields, 
   decryptResponseFields,
@@ -33,6 +33,42 @@ const {
 // Apply transport security to all routes
 router.use(transportSecuritySuite({ enforceHTTPS: true, enforceHSTS: true }));
 
+const getKmsActor = (req, operation) => ({
+  userId: req.user?._id,
+  role: req.userRole || 'authenticated-user',
+  serviceAccount: null,
+  ipAddress: req.ip,
+  reason: req.body?.reason || req.query?.reason,
+  operation,
+  auditUserId: req.user?._id,
+  apiEndpoint: req.originalUrl,
+  requestId: req.headers['x-request-id']
+});
+
+const requireKeyAdmin = (req, res, next) => {
+  const allowedEmails = (process.env.ENCRYPTION_KEY_ADMIN_EMAILS || '')
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const userEmail = req.user?.email?.toLowerCase();
+
+  if (allowedEmails.length > 0) {
+    if (!userEmail || !allowedEmails.includes(userEmail)) {
+      return res.status(403).json({ error: 'Access denied: key administrator privileges required' });
+    }
+    return next();
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({
+      error: 'Key administration policy not configured. Set ENCRYPTION_KEY_ADMIN_EMAILS.'
+    });
+  }
+
+  return next();
+};
+
 // ============================================================================
 // Data Encryption/Decryption APIs
 // ============================================================================
@@ -52,7 +88,12 @@ router.post('/encrypt',
         return res.status(400).json({ error: 'Data is required' });
       }
 
-      const encrypted = await encryptionService.encrypt(data, purpose, { returnObject });
+      const encrypted = await encryptionService.encrypt(data, purpose, {
+        returnObject,
+        actor: getKmsActor(req, 'encrypt'),
+        tenantId: req.body.tenantId,
+        userId: req.body.userId
+      });
 
       res.json({
         success: true,
@@ -82,7 +123,9 @@ router.post('/decrypt',
         return res.status(400).json({ error: 'Encrypted data is required' });
       }
 
-      const decrypted = await encryptionService.decrypt(encryptedData);
+      const decrypted = await encryptionService.decrypt(encryptedData, {
+        actor: getKmsActor(req, 'decrypt')
+      });
 
       res.json({
         success: true,
@@ -91,6 +134,38 @@ router.post('/decrypt',
     } catch (error) {
       console.error('Decryption API error:', error);
       res.status(500).json({ error: 'Decryption failed', message: error.message });
+    }
+  }
+);
+
+/**
+ * POST /api/encryption/decrypt-migrate
+ * Decrypt data and re-encrypt with latest active key if stale
+ */
+router.post('/decrypt-migrate',
+  auth,
+  markEncryptedEndpoint({ purpose: 'userData' }),
+  async (req, res) => {
+    try {
+      const { encryptedData, purpose = 'userData', tenantId = null, userId = null } = req.body;
+
+      if (!encryptedData) {
+        return res.status(400).json({ error: 'Encrypted data is required' });
+      }
+
+      const result = await encryptionService.decryptAndReEncryptIfNeeded(encryptedData, purpose, {
+        tenantId,
+        userId,
+        actor: getKmsActor(req, 'decrypt')
+      });
+
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('Decrypt migrate API error:', error);
+      res.status(500).json({ error: 'Decrypt/migrate failed', message: error.message });
     }
   }
 );
@@ -109,7 +184,9 @@ router.post('/encrypt-fields',
         return res.status(400).json({ error: 'Data and fields array are required' });
       }
 
-      const encrypted = await encryptionService.encryptFields(data, fields, purpose);
+      const encrypted = await encryptionService.encryptFields(data, fields, purpose, {
+        actor: getKmsActor(req, 'encrypt')
+      });
 
       res.json({
         success: true,
@@ -169,7 +246,10 @@ router.post('/encrypt-file',
         ? fileData 
         : Buffer.from(fileData, 'base64');
 
-      const encrypted = await encryptionService.encryptFile(fileBuffer, purpose, metadata);
+      const encrypted = await encryptionService.encryptFile(fileBuffer, purpose, {
+        ...metadata,
+        actor: getKmsActor(req, 'encrypt')
+      });
 
       res.json({
         success: true,
@@ -249,16 +329,23 @@ router.post('/mask',
  */
 router.post('/keys/generate',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
-      const { purpose, keyType = 'data' } = req.body;
+      const { purpose, keyType = 'data', tenantId = null, userId = null, algorithm, rotationPeriodDays } = req.body;
 
       if (!purpose) {
         return res.status(400).json({ error: 'Purpose is required' });
       }
 
-      const key = await kms.generateDataEncryptionKey(purpose, keyType);
+      const key = await kms.generateDataEncryptionKey(purpose, keyType, {
+        tenantId,
+        userId,
+        algorithm,
+        rotationPeriodDays,
+        actor: getKmsActor(req, 'generate')
+      });
 
       res.json({
         success: true,
@@ -280,16 +367,21 @@ router.post('/keys/generate',
  */
 router.post('/keys/rotate',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
-      const { purpose } = req.body;
+      const { purpose, tenantId = null, userId = null } = req.body;
 
       if (!purpose) {
         return res.status(400).json({ error: 'Purpose is required' });
       }
 
-      const result = await kms.rotateKey(purpose);
+      const result = await kms.rotateKey(purpose, {
+        tenantId,
+        userId,
+        actor: getKmsActor(req, 'rotate')
+      });
 
       res.json({
         success: true,
@@ -309,7 +401,8 @@ router.post('/keys/rotate',
  */
 router.post('/keys/revoke',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const { keyId, reason } = req.body;
@@ -318,7 +411,9 @@ router.post('/keys/revoke',
         return res.status(400).json({ error: 'Key ID and reason are required' });
       }
 
-      const result = await kms.revokeKey(keyId, reason);
+      const result = await kms.revokeKey(keyId, reason, {
+        actor: getKmsActor(req, 'revoke')
+      });
 
       res.json({
         success: true,
@@ -338,7 +433,8 @@ router.post('/keys/revoke',
  */
 router.get('/keys',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const { purpose, status } = req.query;
@@ -367,12 +463,16 @@ router.get('/keys',
  */
 router.get('/keys/:keyId',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const { keyId } = req.params;
 
-      const key = await kms.getKeyById(keyId);
+      const key = await kms.getKeyById(keyId, null, {
+        actor: getKmsActor(req, 'read'),
+        operation: 'read'
+      });
 
       res.json({
         success: true,
@@ -393,7 +493,8 @@ router.get('/keys/:keyId',
  */
 router.post('/keys/backup',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const { password } = req.body;
@@ -404,7 +505,9 @@ router.post('/keys/backup',
         });
       }
 
-      const backup = await kms.exportKeyBackup(password);
+      const backup = await kms.exportKeyBackup(password, {
+        actor: getKmsActor(req, 'backup')
+      });
 
       res.json({
         success: true,
@@ -424,7 +527,8 @@ router.post('/keys/backup',
  */
 router.post('/keys/restore',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const { backup, password } = req.body;
@@ -433,10 +537,13 @@ router.post('/keys/restore',
         return res.status(400).json({ error: 'Backup data and password are required' });
       }
 
-      await kms.importKeyBackup(backup, password);
+      const restore = await kms.importKeyBackup(backup, password, {
+        actor: getKmsActor(req, 'backup')
+      });
 
       res.json({
         success: true,
+        restore,
         message: 'Keys restored successfully from backup'
       });
     } catch (error) {
@@ -456,7 +563,8 @@ router.post('/keys/restore',
  */
 router.get('/health',
   auth,
-  requireRole('owner'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const health = await kms.getKeyHealthMetrics();
@@ -483,7 +591,8 @@ router.get('/status',
     try {
       const status = {
         encryptionEnabled: true,
-        algorithms: ['aes-256-gcm'],
+        algorithms: kms.getAlgorithmStatus().supportedAlgorithms,
+        activeAlgorithm: kms.getAlgorithmStatus().activeAlgorithm,
         keyManagement: 'active',
         transportSecurity: {
           https: process.env.NODE_ENV === 'production',
@@ -523,7 +632,8 @@ router.get('/status',
  */
 router.get('/compliance',
   auth,
-  requireRole('manager'),
+  checkRole(['admin']),
+  requireKeyAdmin,
   async (req, res) => {
     try {
       const attestation = encryptionService.getComplianceAttestation();
@@ -691,6 +801,147 @@ router.get('/supported-purposes',
     } catch (error) {
       console.error('Purposes API error:', error);
       res.status(500).json({ error: 'Failed to get purposes', message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /api/encryption/keys/algorithms
+ * Get active and supported key algorithms
+ */
+router.get('/keys/algorithms',
+  auth,
+  checkRole(['admin']),
+  requireKeyAdmin,
+  async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        algorithms: kms.getAlgorithmStatus()
+      });
+    } catch (error) {
+      console.error('Algorithm status API error:', error);
+      res.status(500).json({ error: 'Failed to fetch algorithm status', message: error.message });
+    }
+  }
+);
+
+/**
+ * POST /api/encryption/keys/algorithms/active
+ * Set active algorithm for newly generated keys
+ */
+router.post('/keys/algorithms/active',
+  auth,
+  checkRole(['admin']),
+  requireKeyAdmin,
+  async (req, res) => {
+    try {
+      const { algorithm } = req.body;
+
+      if (!algorithm) {
+        return res.status(400).json({ error: 'Algorithm is required' });
+      }
+
+      const result = await kms.setActiveAlgorithm(algorithm, {
+        actor: getKmsActor(req, 'rotate')
+      });
+
+      res.json({
+        success: true,
+        ...result,
+        message: 'Active algorithm updated'
+      });
+    } catch (error) {
+      console.error('Set algorithm API error:', error);
+      res.status(400).json({ error: 'Failed to set algorithm', message: error.message });
+    }
+  }
+);
+
+/**
+ * POST /api/encryption/keys/derive
+ * Derive hierarchical scoped key (tenant/user)
+ */
+router.post('/keys/derive',
+  auth,
+  checkRole(['admin']),
+  requireKeyAdmin,
+  async (req, res) => {
+    try {
+      const { purpose, tenantId = null, userId = null, context = 'default' } = req.body;
+
+      if (!purpose) {
+        return res.status(400).json({ error: 'Purpose is required' });
+      }
+
+      const derived = await kms.deriveScopedKey({
+        purpose,
+        tenantId,
+        userId,
+        context,
+        actor: getKmsActor(req, 'derive')
+      });
+
+      res.json({
+        success: true,
+        keyId: derived.keyId,
+        parentKeyId: derived.parentKeyId,
+        version: derived.version,
+        context,
+        message: 'Scoped key derived successfully'
+      });
+    } catch (error) {
+      console.error('Derive key API error:', error);
+      res.status(500).json({ error: 'Key derivation failed', message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /api/encryption/keys/audit-trail
+ * Retrieve key access and lifecycle audit events
+ */
+router.get('/keys/audit-trail',
+  auth,
+  checkRole(['admin']),
+  requireKeyAdmin,
+  async (req, res) => {
+    try {
+      const { keyId, purpose, eventType, limit = 100 } = req.query;
+
+      const events = await kms.listAuditTrail({ keyId, purpose, eventType }, Number(limit));
+
+      res.json({
+        success: true,
+        count: events.length,
+        events
+      });
+    } catch (error) {
+      console.error('Key audit trail API error:', error);
+      res.status(500).json({ error: 'Failed to fetch key audit trail', message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /api/encryption/keys/strength
+ * Verify current encryption strength posture
+ */
+router.get('/keys/strength',
+  auth,
+  checkRole(['admin']),
+  requireKeyAdmin,
+  async (req, res) => {
+    try {
+      const verification = kms.verifyEncryptionStrength();
+
+      res.json({
+        success: true,
+        verification
+      });
+    } catch (error) {
+      console.error('Encryption strength API error:', error);
+      res.status(500).json({ error: 'Failed to verify encryption strength', message: error.message });
     }
   }
 );

@@ -13,7 +13,7 @@ const userRepository = require('../repositories/userRepository');
 const DataWarehouse = require('../models/DataWarehouse');
 const CustomDashboard = require('../models/CustomDashboard');
 const FinancialHealthScore = require('../models/FinancialHealthScore');
-const ResponseFactory = require('../utils/ResponseFactory');
+const ResponseFactory = require('../utils/responseFactory');
 const anonymizationGuard = require('../middleware/anonymizationGuard');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 const { requireAuth, getUserId } = require('../middleware/clerkAuth');
@@ -216,6 +216,42 @@ router.get('/runway/summary', requireAuth, async (req, res) => {
     });
   }
 });
+
+/**
+ * GET /api/analytics/liquidity/forecast
+ * Get probabilistic cash-flow projections and confidence intervals
+ * Issue #909: Predictive Liquidity Prophet
+ */
+router.get('/liquidity/forecast', requireAuth, [
+  query('workspaceId').optional().isMongoId()
+], async (req, res) => {
+  try {
+    const workspaceId = req.query.workspaceId || (await userRepository.findById(req.user.id))?.activeWorkspace;
+    const LiquidityForecast = require('../models/LiquidityForecast');
+
+    const forecast = await LiquidityForecast.findOne({ workspaceId })
+      .sort({ simulationDate: -1 });
+
+    if (!forecast) {
+      return res.status(404).json({
+        success: false,
+        message: 'No forecast found for this workspace. Please wait for the weekly prophet run.'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: forecast
+    });
+  } catch (error) {
+    console.error('Get liquidity forecast error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get liquidity forecast'
+    });
+  }
+});
+
 
 // ========================
 // Gamification & Health Score Routes (Issue #421)

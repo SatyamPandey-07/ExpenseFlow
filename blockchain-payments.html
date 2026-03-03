@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Payments & Smart Contracts - ExpenseFlow</title>
+    <link rel="stylesheet" href="blockchain-payments.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⛓️ Blockchain Payments</h1>
+            <p>Smart Contract Integration & Multi-Chain Crypto Payments</p>
+            <div class="wallet-status" id="wallet-status">
+                <span id="connection-indicator" class="disconnected">⚪ Not Connected</span>
+                <button id="connect-wallet" class="btn-primary">Connect Wallet</button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="payments">Payments</button>
+            <button class="tab-btn" data-tab="escrow">Escrow</button>
+            <button class="tab-btn" data-tab="multisig">Multi-Sig</button>
+            <button class="tab-btn" data-tab="defi">DeFi Tracking</button>
+            <button class="tab-btn" data-tab="nft-receipts">NFT Receipts</button>
+            <button class="tab-btn" data-tab="analytics">Analytics</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="wallet-info-card">
+                <h3>Connected Wallet</h3>
+                <div class="wallet-details">
+                    <div class="wallet-item">
+                        <span>Address:</span>
+                        <span id="wallet-address" class="address">Not connected</span>
+                    </div>
+                    <div class="wallet-item">
+                        <span>Network:</span>
+                        <span id="wallet-network">-</span>
+                    </div>
+                    <div class="wallet-item">
+                        <span>Wallet Type:</span>
+                        <span id="wallet-type">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="crypto-balances">
+                <h3>Multi-Chain Balances</h3>
+                <div class="balance-grid" id="balance-grid">
+                    <div class="balance-card eth">
+                        <div class="chain-icon">Ξ</div>
+                        <div class="balance-info">
+                            <h4>Ethereum</h4>
+                            <div class="amount" id="eth-balance">0.0000 ETH</div>
+                            <div class="fiat-value" id="eth-fiat">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-card polygon">
+                        <div class="chain-icon">◇</div>
+                        <div class="balance-info">
+                            <h4>Polygon</h4>
+                            <div class="amount" id="matic-balance">0.0000 MATIC</div>
+                            <div class="fiat-value" id="matic-fiat">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-card bsc">
+                        <div class="chain-icon">◆</div>
+                        <div class="balance-info">
+                            <h4>BSC</h4>
+                            <div class="amount" id="bnb-balance">0.0000 BNB</div>
+                            <div class="fiat-value" id="bnb-fiat">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-card solana">
+                        <div class="chain-icon">◎</div>
+                        <div class="balance-info">
+                            <h4>Solana</h4>
+                            <div class="amount" id="sol-balance">0.0000 SOL</div>
+                            <div class="fiat-value" id="sol-fiat">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stablecoin-balances">
+                <h3>Stablecoin Holdings</h3>
+                <div class="stablecoin-grid">
+                    <div class="stablecoin-item">
+                        <span class="token-name">USDC</span>
+                        <span class="token-balance" id="usdc-balance">0.00</span>
+                    </div>
+                    <div class="stablecoin-item">
+                        <span class="token-name">USDT</span>
+                        <span class="token-balance" id="usdt-balance">0.00</span>
+                    </div>
+                    <div class="stablecoin-item">
+                        <span class="token-name">DAI</span>
+                        <span class="token-balance" id="dai-balance">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recent-transactions">
+                <h3>Recent Blockchain Transactions</h3>
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Chain</th>
+                            <th>Status</th>
+                            <th>Tx Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-transactions-body"></tbody>
+                </table>
+            </div>
+
+            <div class="gas-tracker">
+                <h3>⛽ Gas Tracker</h3>
+                <div class="gas-prices">
+                    <div class="gas-item">
+                        <span>Ethereum:</span>
+                        <span id="eth-gas">- Gwei</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>Polygon:</span>
+                        <span id="polygon-gas">- Gwei</span>
+                    </div>
+                    <div class="gas-item">
+                        <span>BSC:</span>
+                        <span id="bsc-gas">- Gwei</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="price-alerts">
+                <h3>📊 Volatility Alerts</h3>
+                <div id="volatility-alerts"></div>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div id="payments-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Crypto Payment Processing</h2>
+                <button id="new-payment" class="btn-primary">+ New Payment</button>
+            </div>
+
+            <div class="payment-form-container" id="payment-form-container" style="display: none;">
+                <h3>Create Payment</h3>
+                <form id="crypto-payment-form">
+                    <div class="form-group">
+                        <label>Payment Type:</label>
+                        <select id="payment-type">
+                            <option value="direct">Direct Payment</option>
+                            <option value="escrow">Escrow Payment</option>
+                            <option value="recurring">Recurring Payment</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Recipient Address:</label>
+                        <input type="text" id="recipient-address" placeholder="0x..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Amount:</label>
+                            <input type="number" id="payment-amount" step="0.000001" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Currency:</label>
+                            <select id="payment-currency">
+                                <option value="ETH">ETH</option>
+                                <option value="MATIC">MATIC</option>
+                                <option value="BNB">BNB</option>
+                                <option value="SOL">SOL</option>
+                                <option value="USDC">USDC</option>
+                                <option value="USDT">USDT</option>
+                                <option value="DAI">DAI</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Chain:</label>
+                        <select id="payment-chain">
+                            <option value="ethereum">Ethereum</option>
+                            <option value="polygon">Polygon</option>
+                            <option value="bsc">Binance Smart Chain</option>
+                            <option value="solana">Solana</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea id="payment-description" rows="3"></textarea>
+                    </div>
+
+                    <div class="gas-estimate">
+                        <span>Estimated Gas:</span>
+                        <span id="estimated-gas">Calculating...</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Send Payment</button>
+                        <button type="button" id="cancel-payment" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="payment-history">
+                <h3>Payment History</h3>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Recipient</th>
+                            <th>Amount</th>
+                            <th>Currency</th>
+                            <th>Chain</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment-history-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Escrow Tab -->
+        <div id="escrow-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Smart Contract Escrow</h2>
+                <button id="create-escrow" class="btn-primary">+ Create Escrow</button>
+            </div>
+
+            <div class="escrow-stats">
+                <div class="stat-card">
+                    <h4>Active Escrows</h4>
+                    <div class="stat-value" id="active-escrows">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Locked</h4>
+                    <div class="stat-value" id="total-locked">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Completed</h4>
+                    <div class="stat-value" id="completed-escrows">0</div>
+                </div>
+            </div>
+
+            <div class="escrow-list">
+                <h3>Active Escrows</h3>
+                <div id="escrow-contracts"></div>
+            </div>
+
+            <!-- Escrow Creation Modal -->
+            <div id="escrow-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" data-modal="escrow">&times;</span>
+                    <h2>Create Escrow Contract</h2>
+                    <form id="escrow-form">
+                        <div class="form-group">
+                            <label>Vendor Address:</label>
+                            <input type="text" id="escrow-vendor" placeholder="0x..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount:</label>
+                            <input type="number" id="escrow-amount" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Currency:</label>
+                            <select id="escrow-currency">
+                                <option value="USDC">USDC</option>
+                                <option value="USDT">USDT</option>
+                                <option value="DAI">DAI</option>
+                                <option value="ETH">ETH</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Release Conditions:</label>
+                            <textarea id="escrow-conditions" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Arbiter Address (optional):</label>
+                            <input type="text" id="escrow-arbiter" placeholder="0x...">
+                        </div>
+                        <button type="submit" class="btn-primary">Deploy Escrow</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Sig Tab -->
+        <div id="multisig-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Multi-Signature Wallets</h2>
+                <button id="create-multisig" class="btn-primary">+ Create Multi-Sig</button>
+            </div>
+
+            <div class="multisig-wallets">
+                <h3>Your Multi-Sig Wallets</h3>
+                <div id="multisig-list"></div>
+            </div>
+
+            <div class="pending-approvals">
+                <h3>Pending Approvals</h3>
+                <div id="pending-approvals-list"></div>
+            </div>
+
+            <!-- Multi-Sig Creation Modal -->
+            <div id="multisig-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" data-modal="multisig">&times;</span>
+                    <h2>Create Multi-Signature Wallet</h2>
+                    <form id="multisig-form">
+                        <div class="form-group">
+                            <label>Wallet Name:</label>
+                            <input type="text" id="multisig-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Signature Requirement:</label>
+                            <select id="multisig-requirement">
+                                <option value="2-3">2 of 3</option>
+                                <option value="3-5">3 of 5</option>
+                                <option value="2-2">2 of 2</option>
+                                <option value="3-4">3 of 4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Signer Addresses:</label>
+                            <div id="signer-addresses">
+                                <input type="text" class="signer-input" placeholder="Signer 1: 0x..." required>
+                                <input type="text" class="signer-input" placeholder="Signer 2: 0x..." required>
+                                <input type="text" class="signer-input" placeholder="Signer 3: 0x...">
+                            </div>
+                            <button type="button" id="add-signer" class="btn-secondary">+ Add Signer</button>
+                        </div>
+                        <button type="submit" class="btn-primary">Deploy Multi-Sig</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- DeFi Tracking Tab -->
+        <div id="defi-tab" class="tab-content">
+            <div class="section-header">
+                <h2>DeFi Expense Tracking</h2>
+                <button id="refresh-defi" class="btn-primary">🔄 Refresh</button>
+            </div>
+
+            <div class="defi-summary">
+                <div class="defi-stat">
+                    <h4>Total Gas Spent</h4>
+                    <div class="stat-value" id="total-gas-spent">$0.00</div>
+                </div>
+                <div class="defi-stat">
+                    <h4>Swap Costs</h4>
+                    <div class="stat-value" id="total-swap-costs">$0.00</div>
+                </div>
+                <div class="defi-stat">
+                    <h4>Protocol Fees</h4>
+                    <div class="stat-value" id="total-protocol-fees">$0.00</div>
+                </div>
+            </div>
+
+            <div class="defi-transactions">
+                <h3>DeFi Transaction History</h3>
+                <table class="defi-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Protocol</th>
+                            <th>Action</th>
+                            <th>Gas Fee</th>
+                            <th>Protocol Fee</th>
+                            <th>Total Cost</th>
+                            <th>Tx Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody id="defi-transactions-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- NFT Receipts Tab -->
+        <div id="nft-receipts-tab" class="tab-content">
+            <div class="section-header">
+                <h2>NFT Receipt Storage</h2>
+                <button id="mint-receipt" class="btn-primary">+ Mint Receipt NFT</button>
+            </div>
+
+            <div class="nft-info">
+                <p>Store immutable proof of payment as NFTs on-chain with IPFS metadata storage</p>
+            </div>
+
+            <div class="nft-receipts-grid" id="nft-receipts-grid"></div>
+
+            <!-- NFT Mint Modal -->
+            <div id="nft-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" data-modal="nft">&times;</span>
+                    <h2>Mint Receipt NFT</h2>
+                    <form id="nft-mint-form">
+                        <div class="form-group">
+                            <label>Transaction Hash:</label>
+                            <input type="text" id="nft-tx-hash" placeholder="0x..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description:</label>
+                            <textarea id="nft-description" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount:</label>
+                            <input type="number" id="nft-amount" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload Receipt Image:</label>
+                            <input type="file" id="nft-image" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn-primary">Mint NFT</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Blockchain Analytics & Tax Reporting</h2>
+            </div>
+
+            <div class="crypto-tax-summary">
+                <h3>Tax Basis Calculation</h3>
+                <div class="tax-grid">
+                    <div class="tax-item">
+                        <span>Total Crypto Spent:</span>
+                        <span id="total-crypto-spent">$0.00</span>
+                    </div>
+                    <div class="tax-item">
+                        <span>Cost Basis:</span>
+                        <span id="cost-basis">$0.00</span>
+                    </div>
+                    <div class="tax-item">
+                        <span>Capital Gains/Loss:</span>
+                        <span id="capital-gains">$0.00</span>
+                    </div>
+                    <div class="tax-item">
+                        <span>Total Fees:</span>
+                        <span id="total-fees">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="conversion-tracking">
+                <h3>Crypto-to-Fiat Conversions</h3>
+                <table class="conversion-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Crypto Amount</th>
+                            <th>Fiat Value</th>
+                            <th>Rate</th>
+                            <th>Gain/Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody id="conversion-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="audit-trail">
+                <h3>On-Chain Audit Trail</h3>
+                <p>IPFS Storage Hash: <span id="ipfs-hash">Not generated</span></p>
+                <button id="generate-audit-trail" class="btn-secondary">Generate Audit Trail</button>
+                <div id="audit-trail-list"></div>
+            </div>
+
+            <div class="export-section">
+                <h3>Export Data</h3>
+                <button class="btn-secondary" id="export-csv">Export to CSV</button>
+                <button class="btn-secondary" id="export-json">Export to JSON</button>
+                <button class="btn-secondary" id="export-tax-report">Export Tax Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Connection Modal -->
+    <div id="wallet-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" data-modal="wallet">&times;</span>
+            <h2>Connect Wallet</h2>
+            <div class="wallet-options">
+                <button class="wallet-option" data-wallet="metamask">
+                    <span class="wallet-icon">🦊</span>
+                    <span>MetaMask</span>
+                </button>
+                <button class="wallet-option" data-wallet="walletconnect">
+                    <span class="wallet-icon">🔗</span>
+                    <span>WalletConnect</span>
+                </button>
+                <button class="wallet-option" data-wallet="coinbase">
+                    <span class="wallet-icon">🔵</span>
+                    <span>Coinbase Wallet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="wallet-connector.js"></script>
+    <script src="smart-contract-escrow.js"></script>
+    <script src="multisig-wallet.js"></script>
+    <script src="crypto-payment-processor.js"></script>
+    <script src="defi-expense-tracker.js"></script>
+    <script src="nft-receipt-system.js"></script>
+    <script src="gas-optimizer.js"></script>
+    <script src="blockchain-payments.js"></script>
+</body>
+</html>

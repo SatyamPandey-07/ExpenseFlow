@@ -46,7 +46,13 @@ const treasuryNodeSchema = new mongoose.Schema({
         sourceDna: { type: String, enum: ['VENTURE_CAPITAL', 'STATE_GRANT', 'REVENUE', 'LOAN', 'EQUITY'] },
         amount: { type: Number, default: 0 },
         isLocked: { type: Boolean, default: false }
-    }]
+    }],
+    // Issue #910: Self-Healing Reconciliation
+    lastReconciledState: {
+        hash: String,
+        reconciledAt: Date,
+        driftDetected: { type: Number, default: 0 }
+    }
 }, {
     timestamps: true
 });

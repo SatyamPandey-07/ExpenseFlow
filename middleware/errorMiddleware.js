@@ -1,4 +1,4 @@
-const ResponseFactory = require('../utils/ResponseFactory');
+const ResponseFactory = require('../utils/responseFactory');
 const { AppError } = require('../utils/AppError');
 
 /**

@@ -185,18 +185,29 @@ class TreasuryService {
         const totalBalance = vaults.reduce((sum, v) => sum + v.balance, 0);
         const rebalanceActions = [];
 
+        // Issue #909: Integrate LiquidityForecast burn-rate
+        const LiquidityForecast = require('../models/LiquidityForecast');
+        const latestForecast = await LiquidityForecast.findOne({ userId }).sort({ simulationDate: -1 });
+        const dailyBurnRate = latestForecast ? latestForecast.currentBurnRate : (totalBalance / 365); // Fallback
+
         for (const vault of vaults) {
-            // Simple rebalancing: maintain equal distribution
-            const targetBalance = totalBalance / vaults.length;
+            // Adjust target balance based on vault's critical role and projected burn
+            let multiplier = 1.0;
+            if (vault.vaultType === 'OPERATING' && dailyBurnRate > 0) {
+                multiplier = 1.5; // Keep 50% more in operating if high burn
+            }
+
+            const targetBalance = (totalBalance / vaults.length) * multiplier;
             const difference = vault.balance - targetBalance;
 
-            if (Math.abs(difference) > 1000) { // Only rebalance if difference > 1000
+            if (Math.abs(difference) > 1000) {
                 rebalanceActions.push({
                     vaultId: vault._id,
                     vaultName: vault.vaultName,
                     currentBalance: vault.balance,
                     targetBalance,
-                    adjustment: -difference
+                    adjustment: -difference,
+                    forecastContext: latestForecast ? 'PROBABILISTIC_ADJUSTED' : 'STATIC'
                 });
             }
         }
