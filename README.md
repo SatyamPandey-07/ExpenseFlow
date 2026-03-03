@@ -64,6 +64,7 @@ The application features a robust Node.js/Express backend with MongoDB database,
 - 📤 **Data Export** – Export financial data in multiple formats ✅
 - 👥 **Group Expense Management** – Create groups and manage shared expenses ✅
 - 💸 **Expense Splitting** – Split expenses among group members with payment tracking ✅
+- 🏛️ **Tax Compliance & Filing** – Multi-jurisdiction tax calculation, deduction tracking, mileage logging with IRS rates, form generation (1099, W-2, 1040, Schedule C, VAT), quarterly reminders, audit risk scoring, and 7-year receipt archival ✅ [#933](ISSUE_933_IMPLEMENTATION_SUMMARY.md)
 
 ---
 
