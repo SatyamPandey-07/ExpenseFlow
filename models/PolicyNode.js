@@ -57,6 +57,13 @@ const policyNodeSchema = new mongoose.Schema({
             type: String,
             enum: ['VIRTUAL_TRANSFER', 'VAULT_WITHDRAWAL', 'POLICY_CHANGE', 'THRESHOLD_UPDATE', 'EMERGENCY_OVERRIDE']
         }]
+    },
+    // Issue #907: Red-Team Robustness Profiling
+    robustnessScore: { type: Number, default: 0.8, min: 0, max: 1 },
+    vulnerabilityContext: {
+        lastRedTeamFailure: Date,
+        commonBypassVectors: [String],
+        isHardened: { type: Boolean, default: false }
     }
 }, {
     timestamps: true
@@ -69,7 +76,7 @@ policyNodeSchema.index({ targetResource: 1, isActive: 1 });
 /**
  * Get effective quorum requirements for an amount
  */
-policyNodeSchema.methods.getQuorumRequirements = function(amount) {
+policyNodeSchema.methods.getQuorumRequirements = function (amount) {
     if (!this.quorumPolicy?.enabled) return null;
     if (amount < this.quorumPolicy.thresholdAmount) return null;
 
