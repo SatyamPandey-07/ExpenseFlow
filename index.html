@@ -36,7 +36,6 @@
 
 </head>
 <body>
-  <div class="cursor"></div>
  <video autoplay muted loop playsinline class="bg-video">
     <source src="client/assets/bodybg.mp4" type="video/mp4">
   </video>
@@ -1235,6 +1234,7 @@ window.addEventListener("DOMContentLoaded", () => {
             const username = userInfo.querySelector('.username');
             if (username) username.textContent = user.username || user.name || user.email;
           }
+        
           
           // Enable protected content
           protectedElements.forEach(element => {
@@ -1277,6 +1277,7 @@ window.addEventListener("DOMContentLoaded", () => {
           }
         });
       }
+      
 
       function logout() {
         localStorage.removeItem('authToken');
@@ -1399,6 +1400,7 @@ window.addEventListener("DOMContentLoaded", () => {
             opacity: computed.opacity
           });
         }
+      
         
         alert('Check console for detailed modal debug info. Modal should now be visible.');
       }
@@ -1417,61 +1419,71 @@ window.addEventListener("DOMContentLoaded", () => {
       <i class="fas fa-arrow-up"></i>
     </button>
     <script>
-      // Scroll to Top Button - Home Page Only
-      document.addEventListener("DOMContentLoaded", function () {
-        const scrollBtn = document.getElementById("scrollToTopBtn");
-      
-        if (!scrollBtn) return;
-      
-        window.addEventListener("scroll", () => {
-          if (window.scrollY > 300) {
-            scrollBtn.classList.add("show");
-          } else {
-            scrollBtn.classList.remove("show");
-          }
-        });
-      
-        scrollBtn.addEventListener("click", () => {
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-          });
-        });
-      });}
-      //this is theme selector
-      const themeSelect = document.getElementById("theme-select");
+document.addEventListener("DOMContentLoaded", function () {
 
-/* Apply Saved Theme */
-const savedTheme = localStorage.getItem("theme");
+  // Scroll To Top
+  const scrollBtn = document.getElementById("scrollToTopBtn");
 
-if (savedTheme) {
-  document.documentElement.setAttribute("data-theme", savedTheme);
-  themeSelect.value = savedTheme;
-}
+  if (scrollBtn) {
+    window.addEventListener("scroll", function () {
+      if (window.scrollY > 300) {
+        scrollBtn.classList.add("show");
+      } else {
+        scrollBtn.classList.remove("show");
+      }
+    });
 
-/* Change Theme */
-themeSelect.addEventListener("change", function () {
-  const selectedTheme = this.value;
-
-  if (selectedTheme === "system") {
-    document.documentElement.removeAttribute("data-theme");
-    localStorage.removeItem("theme");
-  } else {
-    document.documentElement.setAttribute("data-theme", selectedTheme);
-    localStorage.setItem("theme", selectedTheme);
+    scrollBtn.addEventListener("click", function () {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    });
   }
+  
+
+  // Theme
+  const themeSelect = document.getElementById("theme-select");
+
+  if (themeSelect) {
+    const savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme) {
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      themeSelect.value = savedTheme;
+    }
+
+    themeSelect.addEventListener("change", function () {
+      const selectedTheme = this.value;
+
+      if (selectedTheme === "system") {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.removeItem("theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", selectedTheme);
+        localStorage.setItem("theme", selectedTheme);
+      }
+    });
+  }
+
+  // Cursor
+  const cursor = document.querySelector(".cursor");
+
+  if (cursor) {
+    document.addEventListener("mousemove", function (e) {
+      cursor.style.left = e.clientX + "px";
+      cursor.style.top = e.clientY + "px";
+    });
+  }
+
 });
 
-/*cursor*/
-const cursor = document.querySelector(".cursor");
-
-document.addEventListener("mousemove", (e) => {
-  cursor.style.left = e.clientX + "px";
-  cursor.style.top = e.clientY + "px";
-});
-
+// Modal
 function openLoginModal() {
-  document.getElementById("loginModal").style.display = "block";
+  const modal = document.getElementById("loginModal");
+  if (modal) {
+    modal.style.display = "block";
+  }
 }
     </script>
    
